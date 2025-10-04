@@ -1,0 +1,247 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* نظام ألوان جميل وحيوي */
+:root {
+  /* خلفيات - تدرج خفيف من الأزرق الفاتح */
+  --background: oklch(0.98 0.01 220);
+  --foreground: oklch(0.2 0.02 240);
+
+  /* البطاقات - أبيض نقي */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 240);
+
+  /* النوافذ المنبثقة */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 240);
+
+  /* اللون الأساسي - أزرق حيوي جميل */
+  --primary: oklch(0.55 0.2 240);
+  --primary-foreground: oklch(0.99 0 0);
+
+  /* اللون الثانوي - بنفسجي فاتح */
+  --secondary: oklch(0.65 0.15 280);
+  --secondary-foreground: oklch(0.99 0 0);
+
+  /* الخافت - رمادي أزرق فاتح */
+  --muted: oklch(0.95 0.01 240);
+  --muted-foreground: oklch(0.5 0.02 240);
+
+  /* لون التمييز - برتقالي كهرماني دافئ */
+  --accent: oklch(0.65 0.18 40);
+  --accent-foreground: oklch(0.99 0 0);
+
+  /* التدمير - أحمر حيوي */
+  --destructive: oklch(0.55 0.25 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  /* الحدود والإدخال */
+  --border: oklch(0.88 0.01 240);
+  --input: oklch(0.92 0.01 240);
+  --ring: oklch(0.55 0.2 240);
+
+  /* الرسوم البيانية - ألوان متنوعة وجميلة */
+  --chart-1: oklch(0.55 0.2 240);
+  --chart-2: oklch(0.65 0.18 40);
+  --chart-3: oklch(0.6 0.18 160);
+  --chart-4: oklch(0.65 0.15 280);
+  --chart-5: oklch(0.6 0.22 340);
+
+  --radius: 0.75rem;
+
+  /* الشريط الجانبي */
+  --sidebar: oklch(0.99 0 0);
+  --sidebar-foreground: oklch(0.2 0.02 240);
+  --sidebar-primary: oklch(0.55 0.2 240);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.01 240);
+  --sidebar-accent-foreground: oklch(0.2 0.02 240);
+  --sidebar-border: oklch(0.88 0.01 240);
+  --sidebar-ring: oklch(0.55 0.2 240);
+}
+
+.dark {
+  --background: oklch(0.15 0.02 240);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.18 0.02 240);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.18 0.02 240);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.6 0.2 240);
+  --primary-foreground: oklch(0.15 0.02 240);
+  --secondary: oklch(0.7 0.15 280);
+  --secondary-foreground: oklch(0.15 0.02 240);
+  --muted: oklch(0.22 0.02 240);
+  --muted-foreground: oklch(0.65 0.02 240);
+  --accent: oklch(0.7 0.18 40);
+  --accent-foreground: oklch(0.15 0.02 240);
+  --destructive: oklch(0.55 0.25 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.02 240);
+  --input: oklch(0.28 0.02 240);
+  --ring: oklch(0.6 0.2 240);
+  --chart-1: oklch(0.6 0.2 240);
+  --chart-2: oklch(0.7 0.18 40);
+  --chart-3: oklch(0.65 0.18 160);
+  --chart-4: oklch(0.7 0.15 280);
+  --chart-5: oklch(0.65 0.22 340);
+  --sidebar: oklch(0.18 0.02 240);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.6 0.2 240);
+  --sidebar-primary-foreground: oklch(0.15 0.02 240);
+  --sidebar-accent: oklch(0.22 0.02 240);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.28 0.02 240);
+  --sidebar-ring: oklch(0.6 0.2 240);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--font-cairo);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    /* إضافة خلفية متدرجة جميلة */
+    @apply bg-gradient-to-br from-background via-background to-muted/30 text-foreground min-h-screen;
+  }
+}
+
+/* تأثيرات بصرية احترافية */
+@layer utilities {
+  .glass-effect {
+    @apply bg-card/90 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+
+  .gradient-primary {
+    /* تحسين التدرج للأزرار الأساسية */
+    @apply bg-gradient-to-r from-primary via-primary/95 to-primary/90 hover:from-primary/90 hover:to-primary transition-all duration-300;
+  }
+
+  .gradient-accent {
+    /* تحديث التدرج للأزرار المميزة ليكون برتقالي خافت */
+    @apply bg-gradient-to-r from-accent/80 via-accent/75 to-accent/70 hover:from-accent/70 hover:to-accent/60 transition-all duration-300;
+  }
+
+  .gradient-secondary {
+    /* إضافة تدرج للأزرار الثانوية */
+    @apply bg-gradient-to-r from-secondary via-secondary/95 to-secondary/90 hover:from-secondary/90 hover:to-secondary transition-all duration-300;
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 25px -8px var(--primary), 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+  }
+
+  .shadow-glow-accent {
+    box-shadow: 0 0 25px -8px var(--accent), 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+  }
+
+  .shadow-glow-secondary {
+    /* إضافة تأثير توهج للأزرار الثانوية */
+    box-shadow: 0 0 25px -8px var(--secondary), 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* إضافة أنماط الطباعة لضمان صفحة واحدة */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  #invoice-content {
+    page-break-inside: avoid;
+    page-break-after: avoid;
+    page-break-before: avoid;
+    transform: scale(0.85);
+    transform-origin: top center;
+    margin: 0 auto;
+  }
+
+  #invoice-content * {
+    page-break-inside: avoid;
+  }
+
+  /* تقليل المسافات للطباعة */
+  #invoice-content .mb-8 {
+    margin-bottom: 1rem !important;
+  }
+
+  #invoice-content .mb-6 {
+    margin-bottom: 0.75rem !important;
+  }
+
+  #invoice-content .pb-6 {
+    padding-bottom: 0.75rem !important;
+  }
+
+  #invoice-content .p-6 {
+    padding: 1rem !important;
+  }
+
+  #invoice-content .gap-6 {
+    gap: 1rem !important;
+  }
+
+  #invoice-content .space-y-3 > * + * {
+    margin-top: 0.5rem !important;
+  }
+
+  /* تصغير حجم الخطوط قليلاً */
+  #invoice-content h1 {
+    font-size: 1.5rem !important;
+  }
+
+  #invoice-content h2 {
+    font-size: 1.25rem !important;
+  }
+
+  #invoice-content h3 {
+    font-size: 1rem !important;
+  }
+}
