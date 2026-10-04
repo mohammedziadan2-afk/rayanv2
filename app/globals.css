@@ -1,0 +1,818 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* نظام ألوان جميل وحيوي - v1.1 */
+:root {
+  /* خلفيات - تدرج خفيف من الأزرق الفاتح */
+  --background: oklch(0.98 0.01 220);
+  --foreground: oklch(0.2 0.02 240);
+
+  /* البطاقات - أبيض نقي */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 240);
+
+  /* النوافذ المنبثقة */
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 240);
+
+  /* اللون الأساسي - أزرق حيوي جميل */
+  --primary: oklch(0.55 0.2 240);
+  --primary-foreground: oklch(0.99 0 0);
+
+  /* اللون الثانوي - بنفسجي فاتح */
+  --secondary: oklch(0.65 0.15 280);
+  --secondary-foreground: oklch(0.99 0 0);
+
+  /* الخافت - رمادي أزرق فاتح */
+  --muted: oklch(0.95 0.01 240);
+  --muted-foreground: oklch(0.5 0.02 240);
+
+  /* لون التمييز - برتقالي كهرماني دافئ */
+  --accent: oklch(0.65 0.18 40);
+  --accent-foreground: oklch(0.99 0 0);
+
+  /* التدمير - أحمر حيوي */
+  --destructive: oklch(0.55 0.25 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  /* الحدود والإدخال */
+  --border: oklch(0.88 0.01 240);
+  --input: oklch(0.92 0.01 240);
+  --ring: oklch(0.55 0.2 240);
+
+  /* الرسوم البيانية - ألوان متنوعة وجميلة */
+  --chart-1: oklch(0.55 0.2 240);
+  --chart-2: oklch(0.65 0.18 40);
+  --chart-3: oklch(0.6 0.18 160);
+  --chart-4: oklch(0.65 0.15 280);
+  --chart-5: oklch(0.6 0.22 340);
+
+  --radius: 0.75rem;
+
+  /* الشريط الجانبي */
+  --sidebar: oklch(0.99 0 0);
+  --sidebar-foreground: oklch(0.2 0.02 240);
+  --sidebar-primary: oklch(0.55 0.2 240);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.01 240);
+  --sidebar-accent-foreground: oklch(0.2 0.02 240);
+  --sidebar-border: oklch(0.88 0.01 240);
+  --sidebar-ring: oklch(0.55 0.2 240);
+}
+
+.dark {
+  --background: oklch(0.15 0.02 240);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.18 0.02 240);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.18 0.02 240);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.6 0.2 240);
+  --primary-foreground: oklch(0.15 0.02 240);
+  --secondary: oklch(0.7 0.15 280);
+  --secondary-foreground: oklch(0.15 0.02 240);
+  --muted: oklch(0.22 0.02 240);
+  --muted-foreground: oklch(0.65 0.02 240);
+  --accent: oklch(0.7 0.18 40);
+  --accent-foreground: oklch(0.15 0.02 240);
+  --destructive: oklch(0.55 0.25 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.02 240);
+  --input: oklch(0.28 0.02 240);
+  --ring: oklch(0.6 0.2 240);
+  --chart-1: oklch(0.6 0.2 240);
+  --chart-2: oklch(0.7 0.18 40);
+  --chart-3: oklch(0.65 0.18 160);
+  --chart-4: oklch(0.7 0.15 280);
+  --chart-5: oklch(0.65 0.22 340);
+  --sidebar: oklch(0.18 0.02 240);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.6 0.2 240);
+  --sidebar-primary-foreground: oklch(0.15 0.02 240);
+  --sidebar-accent: oklch(0.22 0.02 240);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.28 0.02 240);
+  --sidebar-ring: oklch(0.6 0.2 240);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--font-cairo);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    /* إضافة خلفية متدرجة جميلة */
+    @apply bg-gradient-to-br from-background via-background to-muted/30 text-foreground min-h-screen;
+    /* إضافة قواعد لمنع overflow على الموبايل */
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* إضافة قواعد responsive للموبايل والتابلت */
+  html {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* منع تكبير الصفحة عند التركيز على input في iOS */
+  @media screen and (max-width: 768px) {
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* ضمان أن جميع العناصر لا تتجاوز عرض الشاشة */
+  * {
+    max-width: 100%;
+  }
+
+  /* تأثير الضغط على جميع العناصر القابلة للضغط */
+  button,
+  [role="button"],
+  a,
+  .cursor-pointer,
+  [data-slot="button"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="checkbox"],
+  input[type="radio"],
+  select,
+  summary {
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out, opacity 0.1s ease-out;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* تأثير الضغط - تصغير العنصر */
+  button:active:not(:disabled),
+  [role="button"]:active:not(:disabled),
+  a:active,
+  .cursor-pointer:active,
+  [data-slot="button"]:active:not(:disabled),
+  input[type="submit"]:active:not(:disabled),
+  input[type="button"]:active:not(:disabled),
+  select:active:not(:disabled),
+  summary:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+  }
+
+  /* تأثير خاص للأزرار الكبيرة */
+  button:active:not(:disabled),
+  [data-slot="button"]:active:not(:disabled) {
+    transform: scale(0.96);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  /* تأثير للبطاقات القابلة للضغط */
+  .card-clickable:active,
+  [data-clickable="true"]:active {
+    transform: scale(0.98);
+    opacity: 0.95;
+  }
+
+  /* تأثير للأيقونات القابلة للضغط */
+  svg.cursor-pointer:active,
+  [role="button"] svg:active {
+    transform: scale(0.9);
+  }
+
+  /* تحسين تأثير checkbox و radio */
+  input[type="checkbox"]:active:not(:disabled),
+  input[type="radio"]:active:not(:disabled) {
+    transform: scale(0.9);
+  }
+}
+
+/* تأثيرات بصرية احترافية */
+@layer utilities {
+  .glass-effect {
+    @apply bg-card/90 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+
+  /* Animation utilities are provided by tw-animate-css */
+
+  .gradient-primary {
+    /* تحسين التدرج للأزرار الأساسية */
+    @apply bg-gradient-to-r from-primary via-primary/95 to-primary/90 hover:from-primary/90 hover:to-primary transition-all duration-300;
+  }
+
+  .gradient-accent {
+    /* تحديث التدرج للأزرار المميزة ليكون برتقالي خافت */
+    @apply bg-gradient-to-r from-accent/80 via-accent/75 to-accent/70 hover:from-accent/70 hover:to-accent/60 transition-all duration-300;
+  }
+
+  .gradient-secondary {
+    /* إضافة تدرج للأزرار الثانوية */
+    @apply bg-gradient-to-r from-secondary via-secondary/95 to-secondary/90 hover:from-secondary/90 hover:to-secondary transition-all duration-300;
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 25px -8px var(--primary), 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+  }
+
+  .shadow-glow-accent {
+    box-shadow: 0 0 25px -8px var(--accent), 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+  }
+
+  .shadow-glow-secondary {
+    /* إضافة تأثير توهج للأزرار الثانوية */
+    box-shadow: 0 0 25px -8px var(--secondary), 0 10px 30px -5px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Performance optimizations for animations */
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  .will-change-opacity {
+    will-change: opacity;
+  }
+
+  /* GPU acceleration for animated elements */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* New animation utilities */
+  .animate-spin-slow {
+    animation: spin 20s linear infinite;
+    will-change: transform;
+  }
+
+  .animate-spin-slower {
+    animation: spin 40s linear infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-pulse-slower {
+    animation: pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-bounce-slow {
+    animation: bounce 3s infinite;
+  }
+
+  .animate-ping-slow {
+    animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .animate-ping-slower {
+    animation: ping 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 1s ease-in;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 1s ease-out;
+  }
+
+  /* Plane animations */
+  .animate-plane-1 {
+    animation: flyAcross1 25s linear infinite;
+  }
+
+  .animate-plane-2 {
+    animation: flyAcross2 30s linear infinite;
+  }
+
+  /* Truck animations */
+  .animate-truck-1 {
+    animation: driveAcross1 20s linear infinite;
+  }
+
+  .animate-truck-2 {
+    animation: driveAcross2 25s linear infinite;
+  }
+
+  /* Floating package animations */
+  .animate-float-1 {
+    animation: float1 6s ease-in-out infinite;
+  }
+
+  .animate-float-2 {
+    animation: float2 8s ease-in-out infinite;
+  }
+
+  .animate-float-3 {
+    animation: float3 7s ease-in-out infinite;
+  }
+
+  /* Adding news ticker slide animation */
+  .animate-slide-right {
+    animation: slideRight 20s linear;
+  }
+
+  /* إضافة animation للأخبار المتحركة بشكل مستمر */
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+
+  /* تحسين animation للحركة من اليسار إلى اليمين مع infinite صريح */
+  .animate-marquee-rtl {
+    animation: marquee-rtl 20s linear infinite;
+    animation-play-state: running;
+  }
+
+  /* تحديث utility class للحركة من اليسار إلى اليمين */
+  .animate-marquee-ltr {
+    /* تغيير المدة من 40s إلى 55s لجعل الحركة أبطأ وأسهل للقراءة */
+    animation: marquee-ltr 55s linear infinite;
+    animation-play-state: running;
+  }
+
+  /* إضافة animation للفقاعات العائمة */
+  .animate-float-bubble {
+    animation: float-bubble 15s ease-in-out infinite;
+  }
+
+  /* إضافة animation أصغر حركة للفقاعات لتجنب التداخل */
+  .animate-float-bubble-small {
+    animation: float-bubble-small 15s ease-in-out infinite;
+  }
+
+  /* تحديث animation للفقاعات المنبثقة من العنوان */
+  .animate-bubble-from-title {
+    animation: bubbleFromTitle 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* إضافة animation للفقاعات المنبثقة */
+  .animate-pop-in {
+    animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  }
+
+  /* Animation delays */
+  .animation-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 0.4s;
+  }
+
+  .animation-delay-600 {
+    animation-delay: 0.6s;
+  }
+
+  .animation-delay-1000 {
+    animation-delay: 1s;
+  }
+  /* Custom utility classes for animations */
+  .animate-gradient-rotate {
+    animation: gradient-rotate 3s ease infinite;
+    background-size: 200% 200%;
+  }
+
+  .animate-gradient-border {
+    animation: gradient-rotate 3s ease infinite;
+    background-size: 200% 200%;
+  }
+
+  .delay-1000 {
+    animation-delay: 1s;
+  }
+
+  .delay-2000 {
+    animation-delay: 2s;
+  }
+}
+
+/* Added keyframe animations */
+@keyframes gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flyAcross1 {
+  0% {
+    left: -10%;
+    top: 20%;
+  }
+  100% {
+    left: 110%;
+    top: 15%;
+  }
+}
+
+@keyframes flyAcross2 {
+  0% {
+    right: -10%;
+    top: 40%;
+  }
+  100% {
+    right: 110%;
+    top: 35%;
+  }
+}
+
+@keyframes driveAcross1 {
+  0% {
+    left: -10%;
+  }
+  100% {
+    left: 110%;
+  }
+}
+
+@keyframes driveAcross2 {
+  0% {
+    right: -10%;
+  }
+  100% {
+    right: 110%;
+  }
+}
+
+@keyframes float1 {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+}
+
+@keyframes float2 {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-30px) rotate(-5deg);
+  }
+}
+
+@keyframes float3 {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-25px) rotate(3deg);
+  }
+}
+
+/* Adding slide animation for news ticker */
+@keyframes slideRight {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* إضافة keyframe animation للحركة المستمرة */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+/* تحسين keyframe animation للحركة من اليسار إلى اليمين */
+@keyframes marquee-rtl {
+  0% {
+    transform: translateX(-25%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* تغيير animation للحركة من اليسار إلى اليمين */
+@keyframes marquee-ltr {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* شريط أخبار متواصل بدون تداخل (نسختان بعرض 50% لكل نسخة) */
+@keyframes marquee-seamless {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* إضافة keyframe animation للفقاعات العائمة */
+@keyframes float-bubble {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-30px) translateX(20px) rotate(5deg);
+  }
+  50% {
+    transform: translateY(-50px) translateX(-10px) rotate(-3deg);
+  }
+  75% {
+    transform: translateY(-20px) translateX(15px) rotate(4deg);
+  }
+}
+
+/* إضافة animation أصغر حركة للفقاعات لتجنب التداخل */
+@keyframes float-bubble-small {
+  0%,
+  100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) translateX(5px) rotate(2deg);
+  }
+  50% {
+    transform: translateY(-15px) translateX(-5px) rotate(-1deg);
+  }
+  75% {
+    transform: translateY(-8px) translateX(8px) rotate(1deg);
+  }
+}
+
+/* تحديث keyframe animation للانبثاق من موقع العنوان مع حركة وتكبير */
+@keyframes bubbleFromTitle {
+  0% {
+    opacity: 0;
+    transform: translate(calc(100vw - 200px), -100px) scale(0.1);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* إضافة keyframe animation للانبثاق من العنوان */
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(-100px);
+  }
+  50% {
+    transform: scale(1.1) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+/* Added custom animations for tracking page with colorful effects */
+@keyframes gradient-rotate {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes bounce-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* تحسين أنماط الطباعة لتوسيط المحتوى وضمان صفحة واحدة */
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* إخفاء العناصر غير المطبوعة فقط */
+  .print\:hidden,
+  button,
+  [role="button"],
+  nav,
+  aside,
+  header:not(.print-header) {
+    display: none !important;
+  }
+
+  /* إظهار محتوى الطباعة بشكل كامل */
+  .print-content {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* التأكد من ظهور جميع العناصر داخل print-content */
+  .print-content * {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* تحسين عرض البطاقات */
+  .print-content [class*="Card"],
+  .print-content [class*="card"] {
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* تقليل حجم الخطوط قليلاً */
+  .print-content {
+    font-size: 10pt !important;
+  }
+
+  .print-content h1 {
+    font-size: 16pt !important;
+  }
+
+  .print-content h2,
+  .print-content h3 {
+    font-size: 12pt !important;
+  }
+
+  /* تحسين عرض الجداول */
+  .print-content table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+  }
+
+  .print-content table th,
+  .print-content table td {
+    border: 1px solid #ddd !important;
+    padding: 4px 6px !important;
+  }
+
+  .print-content table th {
+    background-color: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+
+  /* منع تقسيم العناصر المهمة */
+  .print-content table,
+  .print-content .grid,
+  .print-content .border {
+    page-break-inside: avoid !important;
+  }
+
+  /* إزالة الظلال */
+  .print-content * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* تحسين المسافات */
+  .print-content .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}
