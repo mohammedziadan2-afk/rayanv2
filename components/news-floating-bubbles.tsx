@@ -29,7 +29,7 @@ const linkifyText = (text: string) => {
   })
 }
 
-export function NewsFloatingBubbles() {
+export function NewsFloatingBubbles({ triggerClassName }: { triggerClassName?: string } = {}) {
   const [news, setNews] = useState<News[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showBubbles, setShowBubbles] = useState(false)
@@ -101,12 +101,22 @@ export function NewsFloatingBubbles() {
             setShowBubbles(!showBubbles)
             loadNewsOnDemand()
           }}
-          className="w-full h-16 px-4 rounded-2xl bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-300 cursor-pointer hover:scale-105 flex items-center justify-center"
+          className={
+            triggerClassName ??
+            "w-full h-16 px-4 rounded-2xl bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-300 cursor-pointer hover:scale-105 flex items-center justify-center"
+          }
         >
-          <div className="flex items-center gap-2 justify-center">
-            <Sparkles className="w-5 h-5 text-white animate-pulse" />
-            <p className="text-sm font-bold text-white">أخبار الجسر</p>
-          </div>
+          {triggerClassName ? (
+            <>
+              <Sparkles className="w-4 h-4" />
+              أخبار الجسر
+            </>
+          ) : (
+            <div className="flex items-center gap-2 justify-center">
+              <Sparkles className="w-5 h-5 text-white animate-pulse" />
+              <p className="text-sm font-bold text-white">أخبار الجسر</p>
+            </div>
+          )}
         </button>
 
         {showBubbles && !isNewsOpen && news.length === 0 && !isLoading && (
