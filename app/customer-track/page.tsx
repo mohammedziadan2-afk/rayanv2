@@ -4,30 +4,36 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Package, User, Phone, MapPin, Calendar, FileText } from "lucide-react"
+import { Search, Package, User, Phone, Calendar, FileText } from "lucide-react"
 import type { Shipment } from "@/components/shipment-form"
 import Image from "next/image"
-import { LocationViewDialog } from "@/components/location-view-dialog"
+import { getShipmentByTrackingNumber } from "@/app/actions/shipments"
+import { TrackingNewsBanner } from "@/components/tracking-news-banner"
 
 export default function CustomerTrackPage() {
   const [trackingNumber, setTrackingNumber] = useState("")
   const [shipment, setShipment] = useState<Shipment | null>(null)
   const [notFound, setNotFound] = useState(false)
-  const [showLocationDialog, setShowLocationDialog] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleTrack = () => {
+  const handleTrack = async () => {
     if (!trackingNumber.trim()) return
 
-    const shipments: Shipment[] = JSON.parse(localStorage.getItem("shipments") || "[]")
-    const found = shipments.find((s) => s.trackingNumber === trackingNumber.trim())
+    setIsLoading(true)
+    setNotFound(false)
+    setShipment(null)
 
-    if (found) {
-      setShipment(found)
+    const result = await getShipmentByTrackingNumber(trackingNumber.trim())
+
+    if (result.success && result.data) {
+      setShipment(result.data)
       setNotFound(false)
     } else {
       setShipment(null)
       setNotFound(true)
     }
+
+    setIsLoading(false)
   }
 
   return (
@@ -49,6 +55,9 @@ export default function CustomerTrackPage() {
           </div>
         </div>
       </header>
+
+      {/* Important news ticker (managed from the news admin page) */}
+      <TrackingNewsBanner />
 
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
@@ -81,15 +90,17 @@ export default function CustomerTrackPage() {
                     className="font-mono text-lg h-16 pr-14 border-2 focus:border-primary shadow-md"
                     dir="ltr"
                     style={{ textAlign: "right" }}
+                    disabled={isLoading}
                   />
                 </div>
                 <Button
                   onClick={handleTrack}
                   size="lg"
                   className="px-12 h-16 text-lg gradient-primary shadow-glow hover:shadow-glow-accent transition-all duration-300"
+                  disabled={isLoading}
                 >
                   <Search className="w-6 h-6 ml-2" />
-                  بحث
+                  {isLoading ? "جاري البحث..." : "بحث"}
                 </Button>
               </div>
 
@@ -194,20 +205,7 @@ export default function CustomerTrackPage() {
                     </div>
                   </div>
 
-                  <Button
-                    onClick={() => setShowLocationDialog(true)}
-                    className="w-full h-16 text-xl gradient-primary shadow-glow hover:shadow-glow-accent transition-all duration-300"
-                    size="lg"
-                  >
-                    <MapPin className="w-6 h-6 ml-2" />
-                    عرض موقع الشحنة الحالي
-                  </Button>
 
-                  <LocationViewDialog
-                    open={showLocationDialog}
-                    onOpenChange={setShowLocationDialog}
-                    shipment={shipment}
-                  />
                 </div>
               )}
             </CardContent>

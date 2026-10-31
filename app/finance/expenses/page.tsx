@@ -1,312 +1,384 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Receipt, ShoppingCart, TrendingDown, Printer, Calendar, DollarSign, Plane, ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { TrendingDown, Plus, Trash2, Edit } from "lucide-react"
 import Image from "next/image"
-import type { Expense } from "@/components/expenses-list"
-
-interface Trip {
-  id: string
-  date: string
-  shipments: {
-    deliveryCost: number
-  }[]
-  additionalCosts: {
-    bridgeDelivery: number
-    tickets: number
-    porterFees: number
-    employeeFees: number
-    permitFees: number
-    accommodationExpenses: number
-    other: number
-  }
-  createdAt: string
-}
+import {
+  getExpenses,
+  getDriverSessionExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+  type Expense,
+  type DriverSessionExpense,
+} from "@/app/actions/expenses"
+import { useToast } from "@/hooks/use-toast"
+import { AdminFooter } from "@/components/admin-footer"
+import { getCSRFToken } from "@/app/actions/csrf"
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [trips, setTrips] = useState<Trip[]>([])
-  const [totalTripsCosts, setTotalTripsCosts] = useState(0)
+  const [driverExpenses, setDriverExpenses] = useState<DriverSessionExpense[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [showDriverTable, setShowDriverTable] = useState(false)
+  const [showExpensesTable, setShowExpensesTable] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
+  const [newExpense, setNewExpense] = useState({
+    category: "",
+    description: "",
+    amount: "",
+    date: new Date().toISOString().split("T")[0],
+  })
+  const [csrfToken, setCsrfToken] = useState("")
+  const { toast } = useToast()
 
   useEffect(() => {
-    const stored = localStorage.getItem("expenses")
-    if (stored) {
-      setExpenses(JSON.parse(stored))
-    }
-    loadTrips()
+    loadData()
+    getCSRFToken().then((token) => {
+      setCsrfToken(token)
+    })
   }, [])
 
-  const loadTrips = () => {
-    const stored = localStorage.getItem("trips")
-    if (stored) {
-      const parsedTrips: Trip[] = JSON.parse(stored)
-      setTrips(parsedTrips)
-
-      const tripsCosts = parsedTrips.reduce((sum, trip) => {
-        const deliveryCosts = trip.shipments.reduce((s, shipment) => s + (shipment.deliveryCost || 0), 0)
-        const additionalCosts = Object.values(trip.additionalCosts).reduce((s, cost) => s + (cost || 0), 0)
-        return sum + deliveryCosts + additionalCosts
-      }, 0)
-      setTotalTripsCosts(tripsCosts)
-    } else {
-      setTrips([])
-      setTotalTripsCosts(0)
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const [expensesData, driverSessionsData] = await Promise.all([getExpenses(), getDriverSessionExpenses()])
+      setExpenses(expensesData)
+      setDriverExpenses(driverSessionsData)
+    } catch (error) {
+      console.error("Error loading expenses:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const expensesList = expenses.filter((e) => e.type === "expense")
-  const purchasesList = expenses.filter((e) => e.type === "purchase")
-  const totalExpenses = expensesList.reduce((sum, e) => sum + e.amount, 0)
-  const totalPurchases = purchasesList.reduce((sum, e) => sum + e.amount, 0)
-  const grandTotal = totalExpenses + totalPurchases + totalTripsCosts
+  const manualExpensesTotal = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0)
+  const driverExpensesTotal = driverExpenses.reduce((sum, exp) => sum + Number(exp.total_driver_fee_included || 0), 0)
+  const totalExpenses = manualExpensesTotal + driverExpensesTotal
 
-  const handlePrint = () => {
-    window.print()
+  const handleAddExpense = async () => {
+    if (!newExpense.category || !newExpense.description || !newExpense.amount) {
+      toast({ title: "خطأ", description: "يرجى ملء جميع الحقول", variant: "destructive" })
+      return
+    }
+
+    const expenseData = {
+      ...newExpense,
+      amount: Number.parseFloat(newExpense.amount),
+    }
+
+    const result = editingExpense
+      ? await updateExpense(editingExpense.id, expenseData, csrfToken)
+      : await createExpense(expenseData, csrfToken)
+
+    if (result.success) {
+      toast({
+        title: "تم بنجاح",
+        description: editingExpense ? "تم تعديل المصروف" : "تم إضافة المصروف",
+      })
+      const newToken = await getCSRFToken()
+      setCsrfToken(newToken)
+      setDialogOpen(false)
+      setEditingExpense(null)
+      setNewExpense({ category: "", description: "", amount: "", date: new Date().toISOString().split("T")[0] })
+      loadData()
+    } else {
+      toast({ title: "خطأ", description: result.error || "فشل في حفظ المصروف", variant: "destructive" })
+    }
+  }
+
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense)
+    setNewExpense({
+      category: expense.category,
+      description: expense.description,
+      amount: expense.amount.toString(),
+      date: expense.date,
+    })
+    setDialogOpen(true)
+  }
+
+  const handleDeleteExpense = async (id: string) => {
+    const result = await deleteExpense(id, csrfToken)
+    if (result.success) {
+      toast({ title: "تم بنجاح", description: "تم حذف المصروف" })
+      const newToken = await getCSRFToken()
+      setCsrfToken(newToken)
+      loadData()
+    } else {
+      toast({ title: "خطأ", description: result.error || "فشل في حذف المصروف", variant: "destructive" })
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <header className="glass-effect sticky top-0 z-50 shadow-lg border-b-2 border-primary/10 print:hidden">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-cyan-50 to-emerald-50 pb-24">
+      <header className="glass-effect sticky top-0 z-50 shadow-lg border-b-2 border-primary/10">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6">
           <div className="flex items-center justify-between gap-2 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-              <div className="relative w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden shadow-glow ring-2 ring-primary/20 flex-shrink-0">
+              <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-xl overflow-hidden shadow-glow ring-2 ring-primary/20 flex-shrink-0">
                 <Image src="/images/logo.jpg" alt="شعار الريان" fill className="object-contain p-1 sm:p-2" />
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="text-base sm:text-2xl lg:text-3xl font-bold bg-gradient-to-l from-primary via-primary/80 to-accent bg-clip-text text-transparent leading-tight">
+                <h1 className="text-base sm:text-2xl lg:text-3xl font-bold bg-gradient-to-l from-sky-600 via-cyan-600 to-emerald-600 bg-clip-text text-transparent leading-tight">
                   مؤسسة الريان واريان للشحن
                 </h1>
-                <p className="text-[10px] sm:text-sm text-muted-foreground font-semibold mt-0.5 sm:mt-1">
-                  تفاصيل المصروفات والمشتريات
-                </p>
+                <p className="text-[10px] sm:text-sm text-muted-foreground font-semibold mt-0.5 sm:mt-1">المصروفات</p>
               </div>
             </div>
-
-            <Link href="/finance">
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 bg-transparent"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">العودة للمالية</span>
-              </Button>
-            </Link>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-10">
-        <div className="space-y-6 print:space-y-4">
-          {/* العنوان */}
-          <div className="flex items-center justify-between print:mb-6">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-red-500/10">
-                <TrendingDown className="w-5 h-5 sm:w-7 sm:h-7 text-red-500" />
-              </div>
-              <div>
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-                  تفاصيل المصروفات والمشتريات
-                </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-                  إجمالي المصروفات والمشتريات وتكاليف الرحلات
-                </p>
-              </div>
-            </div>
-            <Button onClick={handlePrint} className="gap-2 print:hidden">
-              <Printer className="w-4 h-4" />
-              <span className="hidden sm:inline">طباعة</span>
-            </Button>
-          </div>
-
-          {/* ملخص الإحصائيات */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="glass-effect border-red-500/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-red-500/10">
-                    <Receipt className="w-6 h-6 text-red-500" />
+        <div className="max-w-6xl mx-auto space-y-6">
+          <Card className="border-2 border-red-400 bg-gradient-to-br from-red-50 to-red-100/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-red-500 shadow-lg">
+                    <TrendingDown className="w-8 h-8 text-white" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">إجمالي المصروفات</p>
-                    <p className="text-2xl font-bold text-red-500">{totalExpenses.toFixed(2)} د.أ</p>
-                    <p className="text-xs text-muted-foreground mt-1">{expensesList.length} مصروف</p>
+                    <p className="text-4xl font-bold text-red-700">{totalExpenses.toFixed(2)} د.أ</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="glass-effect border-orange-500/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-orange-500/10">
-                    <ShoppingCart className="w-6 h-6 text-orange-500" />
+          <Card className="glass-effect">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>أجرة السائقين (جلسات معتمدة)</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDriverTable(!showDriverTable)}
+                  className="glass-effect"
+                >
+                  {showDriverTable ? "إخفاء" : "إظهار"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p className="text-center py-4">جاري التحميل...</p>
+              ) : driverExpenses.length === 0 ? (
+                <p className="text-center py-4 text-muted-foreground">لا توجد جلسات معتمدة</p>
+              ) : (
+                <>
+                  {showDriverTable && (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>النوع</TableHead>
+                          <TableHead>الوصف</TableHead>
+                          <TableHead>التاريخ</TableHead>
+                          <TableHead className="text-right">المبلغ</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {driverExpenses.map((expense) => (
+                          <TableRow key={expense.id}>
+                            <TableCell className="font-medium">{expense.driver_name}</TableCell>
+                            <TableCell>جلسة رقم {expense.session_number}</TableCell>
+                            <TableCell>{new Date(expense.session_date).toLocaleDateString("ar-EG")}</TableCell>
+                            <TableCell className="text-right font-bold text-red-700">
+                              {Number(expense.total_driver_fee_included).toFixed(2)} د.أ
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                  <div className="mt-4 p-4 bg-red-100 rounded-lg">
+                    <p className="text-lg font-bold text-red-800">المجموع: {driverExpensesTotal.toFixed(2)} د.أ</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">إجمالي المشتريات</p>
-                    <p className="text-2xl font-bold text-orange-500">{totalPurchases.toFixed(2)} د.أ</p>
-                    <p className="text-xs text-muted-foreground mt-1">{purchasesList.length} مشترى</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-            <Card className="glass-effect border-purple-500/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-purple-500/10">
-                    <Plane className="w-6 h-6 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">تكاليف الرحلات</p>
-                    <p className="text-2xl font-bold text-purple-500">{totalTripsCosts.toFixed(2)} د.أ</p>
-                    <p className="text-xs text-muted-foreground mt-1">{trips.length} رحلة</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-effect border-primary/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-primary/10">
-                    <DollarSign className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">المجموع الكلي</p>
-                    <p className="text-2xl font-bold text-primary">{grandTotal.toFixed(2)} د.أ</p>
-                    <p className="text-xs text-muted-foreground mt-1">{expenses.length + trips.length} عنصر</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* قائمة المصروفات */}
-          {expensesList.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-red-500" />
-                المصروفات ({expensesList.length})
-              </h3>
-              <div className="space-y-2">
-                {expensesList.map((expense) => (
-                  <Card key={expense.id} className="glass-effect border-red-500/10">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold">{expense.description}</h4>
-                            <span className="text-xs px-2 py-1 rounded bg-red-500/10 text-red-500">
-                              {expense.category}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(expense.date).toLocaleDateString("en-GB")}
-                          </div>
-                          {expense.notes && <p className="text-sm text-muted-foreground mt-2">{expense.notes}</p>}
+          <Card className="glass-effect">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>مصروفات أخرى</CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowExpensesTable(!showExpensesTable)}
+                    className="glass-effect"
+                  >
+                    {showExpensesTable ? "إخفاء" : "إظهار"}
+                  </Button>
+                  <Dialog
+                    open={dialogOpen}
+                    onOpenChange={(open) => {
+                      setDialogOpen(open)
+                      if (!open) {
+                        setEditingExpense(null)
+                        setNewExpense({
+                          category: "",
+                          description: "",
+                          amount: "",
+                          date: new Date().toISOString().split("T")[0],
+                        })
+                      }
+                    }}
+                  >
+                    <DialogTrigger asChild>
+                      <Button className="bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500">
+                        <Plus className="w-4 h-4 ml-2" />
+                        إضافة مصروف
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{editingExpense ? "تعديل مصروف" : "إضافة مصروف جديد"}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="category">نوع المصروف</Label>
+                          <Select
+                            value={newExpense.category}
+                            onValueChange={(value) => setNewExpense({ ...newExpense, category: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر نوع المصروف" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="rent">إيجار</SelectItem>
+                              <SelectItem value="salaries">رواتب</SelectItem>
+                              <SelectItem value="utilities">مرافق (كهرباء، ماء، إنترنت)</SelectItem>
+                              <SelectItem value="maintenance">صيانة</SelectItem>
+                              <SelectItem value="fuel">وقود</SelectItem>
+                              <SelectItem value="supplies">مستلزمات</SelectItem>
+                              <SelectItem value="marketing">تسويق</SelectItem>
+                              <SelectItem value="other">أخرى</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div className="text-left">
-                          <p className="text-xl font-bold text-red-500">{expense.amount.toFixed(2)} د.أ</p>
+                        <div className="space-y-2">
+                          <Label htmlFor="description">الوصف</Label>
+                          <Input
+                            id="description"
+                            value={newExpense.description}
+                            onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
+                            placeholder="وصف المصروف"
+                          />
                         </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="amount">المبلغ</Label>
+                          <Input
+                            id="amount"
+                            type="number"
+                            step="0.01"
+                            value={newExpense.amount}
+                            onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="date">التاريخ</Label>
+                          <Input
+                            id="date"
+                            type="date"
+                            value={newExpense.date}
+                            onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
+                          />
+                        </div>
+                        <Button
+                          onClick={handleAddExpense}
+                          className="w-full bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500"
+                        >
+                          {editingExpense ? "تحديث" : "حفظ"}
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* قائمة المشتريات */}
-          {purchasesList.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-orange-500" />
-                المشتريات ({purchasesList.length})
-              </h3>
-              <div className="space-y-2">
-                {purchasesList.map((purchase) => (
-                  <Card key={purchase.id} className="glass-effect border-orange-500/10">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold">{purchase.description}</h4>
-                            <span className="text-xs px-2 py-1 rounded bg-orange-500/10 text-orange-500">
-                              {purchase.category}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(purchase.date).toLocaleDateString("en-GB")}
-                          </div>
-                          {purchase.notes && <p className="text-sm text-muted-foreground mt-2">{purchase.notes}</p>}
-                        </div>
-                        <div className="text-left">
-                          <p className="text-xl font-bold text-orange-500">{purchase.amount.toFixed(2)} د.أ</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* قائمة الرحلات */}
-          {trips.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Plane className="w-5 h-5 text-purple-500" />
-                تكاليف الرحلات ({trips.length})
-              </h3>
-              <div className="space-y-2">
-                {trips.map((trip) => {
-                  const deliveryCosts = trip.shipments.reduce((s, shipment) => s + (shipment.deliveryCost || 0), 0)
-                  const additionalCosts = Object.values(trip.additionalCosts).reduce((s, cost) => s + (cost || 0), 0)
-                  const totalCost = deliveryCosts + additionalCosts
-
-                  return (
-                    <Card key={trip.id} className="glass-effect border-purple-500/10">
-                      <CardContent className="pt-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Plane className="w-4 h-4 text-purple-500" />
-                              <h4 className="font-semibold">رحلة {new Date(trip.date).toLocaleDateString("en-GB")}</h4>
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-1 mt-2">
-                              <p>تكاليف التوصيل: {deliveryCosts.toFixed(2)} د.أ</p>
-                              <p>التكاليف الإضافية: {additionalCosts.toFixed(2)} د.أ</p>
-                            </div>
-                          </div>
-                          <div className="text-left">
-                            <p className="text-xl font-bold text-purple-500">{totalCost.toFixed(2)} د.أ</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {expenses.length === 0 && trips.length === 0 && (
-            <Card className="glass-effect">
-              <CardContent className="text-center py-12">
-                <TrendingDown className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">لا توجد مصروفات أو مشتريات أو رحلات مسجلة</p>
-              </CardContent>
-            </Card>
-          )}
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p className="text-center py-4">جاري التحميل...</p>
+              ) : expenses.length === 0 ? (
+                <p className="text-center py-4 text-muted-foreground">لا توجد مصروفات</p>
+              ) : (
+                <>
+                  {showExpensesTable && (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>النوع</TableHead>
+                          <TableHead>الوصف</TableHead>
+                          <TableHead>التاريخ</TableHead>
+                          <TableHead className="text-right">المبلغ</TableHead>
+                          <TableHead className="text-center">إجراءات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {expenses.map((expense) => (
+                          <TableRow key={expense.id}>
+                            <TableCell className="font-medium">{expense.category}</TableCell>
+                            <TableCell>{expense.description}</TableCell>
+                            <TableCell>
+                              {expense.date
+                                ? new Date(expense.date).toLocaleDateString("en-GB", {
+                                    year: "numeric",
+                                    month: "2-digit",
+                                    day: "2-digit",
+                                  })
+                                : "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-red-700">
+                              {Number(expense.amount).toFixed(2)} د.أ
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditExpense(expense)}
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteExpense(expense.id)}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                  <div className="mt-4 p-4 bg-red-100 rounded-lg">
+                    <p className="text-lg font-bold text-red-800">المجموع: {manualExpensesTotal.toFixed(2)} د.أ</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </main>
+      <AdminFooter backUrl="/finance" backLabel="المالية" />
     </div>
   )
 }

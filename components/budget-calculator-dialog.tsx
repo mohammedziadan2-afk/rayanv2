@@ -8,32 +8,15 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Calculator, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Receipt, Printer } from "lucide-react"
 import { PrintBudget } from "./print-budget"
-import type { Expense } from "./expenses-list"
+import { getAllShipments } from "@/app/actions/shipments"
+import { getAllExpenses } from "@/app/actions/expenses"
 
 interface Shipment {
   id: string
   amount?: number
   receivedDate: string
+  delivery_cost?: number
   [key: string]: any
-}
-
-interface Trip {
-  id: string
-  date: string
-  tobaccoRevenue: number
-  otherRevenue: number
-  shipments: {
-    deliveryCost: number
-  }[]
-  additionalCosts: {
-    bridgeDelivery: number
-    tickets: number
-    porterFees: number
-    employeeFees: number
-    permitFees: number
-    accommodationExpenses: number
-    other: number
-  }
 }
 
 interface BudgetCalculatorDialogProps {
@@ -52,82 +35,57 @@ export function BudgetCalculatorDialog({ open, onOpenChange }: BudgetCalculatorD
     budget: number
   } | null>(null)
   const [printOpen, setPrintOpen] = useState(false)
+  const [isCalculating, setIsCalculating] = useState(false)
 
-  const calculateBudget = () => {
+  const calculateBudget = async () => {
     if (!startDate || !endDate) {
       return
     }
 
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    setIsCalculating(true)
+    try {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
 
-    // جلب الشحنات من localStorage
-    const shipmentsData = localStorage.getItem("shipments")
-    const shipments: Shipment[] = shipmentsData ? JSON.parse(shipmentsData) : []
+      const [shipments, expenses] = await Promise.all([getAllShipments(), getAllExpenses()])
 
-    // حساب الإيرادات من الشحنات في الفترة المحددة
-    const revenue = shipments
-      .filter((shipment) => {
-        const shipmentDate = new Date(shipment.receivedDate)
-        return shipmentDate >= start && shipmentDate <= end
+      const revenue = shipments
+        .filter((shipment) => {
+          const shipmentDate = new Date(shipment.received_date || shipment.created_at)
+          return shipmentDate >= start && shipmentDate <= end
+        })
+        .reduce((sum, shipment) => sum + (shipment.amount || 0), 0)
+
+      const expensesTotal = expenses
+        .filter((expense) => {
+          const expenseDate = new Date(expense.date)
+          return expense.type === "expense" && expenseDate >= start && expenseDate <= end
+        })
+        .reduce((sum, expense) => sum + expense.amount, 0)
+
+      const purchasesTotal = expenses
+        .filter((expense) => {
+          const expenseDate = new Date(expense.date)
+          return expense.type === "purchase" && expenseDate >= start && expenseDate <= end
+        })
+        .reduce((sum, expense) => sum + expense.amount, 0)
+
+      const total = expensesTotal + purchasesTotal
+
+      const budget = revenue - total
+
+      setResult({
+        revenue,
+        expenses: expensesTotal,
+        purchases: purchasesTotal,
+        total,
+        budget,
       })
-      .reduce((sum, shipment) => sum + (shipment.amount || 0), 0)
-
-    const tripsData = localStorage.getItem("trips")
-    const trips: Trip[] = tripsData ? JSON.parse(tripsData) : []
-
-    const tripsRevenue = trips
-      .filter((trip) => {
-        const tripDate = new Date(trip.date)
-        return tripDate >= start && tripDate <= end
-      })
-      .reduce((sum, trip) => sum + (trip.tobaccoRevenue || 0) + (trip.otherRevenue || 0), 0)
-
-    const totalRevenue = revenue + tripsRevenue
-
-    // جلب المصروفات والمشتريات من localStorage
-    const expensesData = localStorage.getItem("expenses")
-    const expenses: Expense[] = expensesData ? JSON.parse(expensesData) : []
-
-    // حساب المصروفات في الفترة المحددة
-    const expensesTotal = expenses
-      .filter((expense) => {
-        const expenseDate = new Date(expense.date)
-        return expense.type === "expense" && expenseDate >= start && expenseDate <= end
-      })
-      .reduce((sum, expense) => sum + expense.amount, 0)
-
-    // حساب المشتريات في الفترة المحددة
-    const purchasesTotal = expenses
-      .filter((expense) => {
-        const expenseDate = new Date(expense.date)
-        return expense.type === "purchase" && expenseDate >= start && expenseDate <= end
-      })
-      .reduce((sum, expense) => sum + expense.amount, 0)
-
-    const tripsCosts = trips
-      .filter((trip) => {
-        const tripDate = new Date(trip.date)
-        return tripDate >= start && tripDate <= end
-      })
-      .reduce((sum, trip) => {
-        const deliveryCosts = trip.shipments.reduce((s, shipment) => s + (shipment.deliveryCost || 0), 0)
-        const additionalCosts = Object.values(trip.additionalCosts).reduce((s, cost) => s + (cost || 0), 0)
-        return sum + deliveryCosts + additionalCosts
-      }, 0)
-
-    const total = expensesTotal + purchasesTotal + tripsCosts
-
-    // حساب الميزانية (الإيرادات - المصروفات والمشتريات)
-    const budget = totalRevenue - total
-
-    setResult({
-      revenue: totalRevenue,
-      expenses: expensesTotal,
-      purchases: purchasesTotal,
-      total,
-      budget,
-    })
+    } catch (error) {
+      console.error("Error calculating budget:", error)
+    } finally {
+      setIsCalculating(false)
+    }
   }
 
   const handleReset = () => {
@@ -148,7 +106,6 @@ export function BudgetCalculatorDialog({ open, onOpenChange }: BudgetCalculatorD
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* اختيار الفترة الزمنية */}
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -174,9 +131,13 @@ export function BudgetCalculatorDialog({ open, onOpenChange }: BudgetCalculatorD
               </div>
 
               <div className="flex gap-3">
-                <Button onClick={calculateBudget} disabled={!startDate || !endDate} className="flex-1 gradient-primary">
+                <Button
+                  onClick={calculateBudget}
+                  disabled={!startDate || !endDate || isCalculating}
+                  className="flex-1 gradient-primary"
+                >
                   <Calculator className="w-4 h-4 ml-2" />
-                  احسب الميزانية
+                  {isCalculating ? "جاري الحساب..." : "احسب الميزانية"}
                 </Button>
                 <Button onClick={handleReset} variant="outline">
                   إعادة تعيين
@@ -184,11 +145,9 @@ export function BudgetCalculatorDialog({ open, onOpenChange }: BudgetCalculatorD
               </div>
             </div>
 
-            {/* عرض النتائج */}
             {result && (
               <div className="space-y-4 animate-in fade-in duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* الإيرادات */}
                   <Card className="border-2 border-green-200 bg-green-50/50">
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
@@ -205,7 +164,6 @@ export function BudgetCalculatorDialog({ open, onOpenChange }: BudgetCalculatorD
                     </CardContent>
                   </Card>
 
-                  {/* المصروفات */}
                   <Card className="border-2 border-red-200 bg-red-50/50">
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
@@ -222,7 +180,6 @@ export function BudgetCalculatorDialog({ open, onOpenChange }: BudgetCalculatorD
                     </CardContent>
                   </Card>
 
-                  {/* المشتريات */}
                   <Card className="border-2 border-orange-200 bg-orange-50/50">
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
@@ -239,17 +196,16 @@ export function BudgetCalculatorDialog({ open, onOpenChange }: BudgetCalculatorD
                     </CardContent>
                   </Card>
 
-                  {/* المجموع الكلي */}
-                  <Card className="border-2 border-purple-200 bg-purple-50/50">
+                  <Card className="border-2 border-blue-200 bg-blue-50/50">
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-purple-500">
+                          <div className="p-2 rounded-lg bg-blue-500">
                             <TrendingDown className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">إجمالي المصروفات</p>
-                            <p className="text-2xl font-bold text-purple-700">{result.total.toFixed(2)} د.أ</p>
+                            <p className="text-sm text-muted-foreground">إجمالي المصروفات والمشتريات</p>
+                            <p className="text-2xl font-bold text-blue-700">{result.total.toFixed(2)} د.أ</p>
                           </div>
                         </div>
                       </div>
@@ -257,7 +213,6 @@ export function BudgetCalculatorDialog({ open, onOpenChange }: BudgetCalculatorD
                   </Card>
                 </div>
 
-                {/* الميزانية النهائية */}
                 <Card
                   className={`border-4 ${result.budget >= 0 ? "border-green-400 bg-green-50" : "border-red-400 bg-red-50"}`}
                 >

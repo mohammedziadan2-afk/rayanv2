@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
-import { TrendingUp, DollarSign, Package, Calendar, Plane, Cigarette, MoreHorizontal } from "lucide-react"
+import { TrendingUp, DollarSign, Package, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Printer } from "lucide-react"
+import { getAllShipments } from "@/app/actions/shipments"
 
 interface Shipment {
   id: string
@@ -20,14 +21,6 @@ interface Shipment {
   notes?: string
 }
 
-interface Trip {
-  id: string
-  date: string
-  tobaccoRevenue: number
-  otherRevenue: number
-  createdAt: string
-}
-
 interface RevenueDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -35,57 +28,36 @@ interface RevenueDetailsDialogProps {
 
 export function RevenueDetailsDialog({ open, onOpenChange }: RevenueDetailsDialogProps) {
   const [shipments, setShipments] = useState<Shipment[]>([])
-  const [trips, setTrips] = useState<Trip[]>([])
   const [totalRevenue, setTotalRevenue] = useState(0)
   const [totalShipments, setTotalShipments] = useState(0)
-  const [totalTripsRevenue, setTotalTripsRevenue] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (open) {
-      loadShipments()
-      loadTrips()
+      loadData()
     }
   }, [open])
 
-  const loadShipments = () => {
-    const stored = localStorage.getItem("shipments")
-    if (stored) {
-      const parsedShipments: Shipment[] = JSON.parse(stored)
-      setShipments(parsedShipments)
+  const loadData = async () => {
+    setIsLoading(true)
+    try {
+      const shipmentsData = await getAllShipments()
 
-      // حساب مجموع الإيرادات
-      const total = parsedShipments.reduce((sum, shipment) => sum + (shipment.amount || 0), 0)
-      setTotalRevenue(total)
-      setTotalShipments(parsedShipments.length)
-    } else {
-      setShipments([])
-      setTotalRevenue(0)
-      setTotalShipments(0)
-    }
-  }
+      setShipments(shipmentsData)
+      const shipmentsTotal = shipmentsData.reduce((sum, shipment) => sum + (shipment.amount || 0), 0)
 
-  const loadTrips = () => {
-    const stored = localStorage.getItem("trips")
-    if (stored) {
-      const parsedTrips: Trip[] = JSON.parse(stored)
-      setTrips(parsedTrips)
-
-      // حساب مجموع الإيرادات الإضافية من الرحلات (التبغ + أخرى)
-      const tripsRevenue = parsedTrips.reduce((sum, trip) => {
-        return sum + (trip.tobaccoRevenue || 0) + (trip.otherRevenue || 0)
-      }, 0)
-      setTotalTripsRevenue(tripsRevenue)
-    } else {
-      setTrips([])
-      setTotalTripsRevenue(0)
+      setTotalRevenue(shipmentsTotal)
+      setTotalShipments(shipmentsData.length)
+    } catch (error) {
+      console.error("Error loading revenue data:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handlePrint = () => {
     window.print()
   }
-
-  const grandTotalRevenue = totalRevenue + totalTripsRevenue
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -95,12 +67,11 @@ export function RevenueDetailsDialog({ open, onOpenChange }: RevenueDetailsDialo
             <TrendingUp className="w-6 h-6 text-green-500" />
             تفاصيل الإيرادات
           </DialogTitle>
-          <DialogDescription>إجمالي الإيرادات من جميع الشحنات والرحلات المسجلة</DialogDescription>
+          <DialogDescription>إجمالي الإيرادات من جميع الشحنات المسجلة</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 print:space-y-4">
-          {/* ملخص الإيرادات */}
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2">
             <Card className="glass-effect border-green-500/20">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
@@ -109,35 +80,7 @@ export function RevenueDetailsDialog({ open, onOpenChange }: RevenueDetailsDialo
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">إجمالي الإيرادات</p>
-                    <p className="text-2xl font-bold text-green-500">{grandTotalRevenue.toLocaleString()} د.ع</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-effect border-blue-500/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-blue-500/10">
-                    <Package className="w-6 h-6 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">إيرادات الشحنات</p>
-                    <p className="text-2xl font-bold text-blue-500">{totalRevenue.toLocaleString()} د.ع</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-effect border-purple-500/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-purple-500/10">
-                    <Plane className="w-6 h-6 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">إيرادات الرحلات</p>
-                    <p className="text-2xl font-bold text-purple-500">{totalTripsRevenue.toLocaleString()} د.ع</p>
+                    <p className="text-2xl font-bold text-green-500">{totalRevenue.toLocaleString()} د.ع</p>
                   </div>
                 </div>
               </CardContent>
@@ -158,7 +101,6 @@ export function RevenueDetailsDialog({ open, onOpenChange }: RevenueDetailsDialo
             </Card>
           </div>
 
-          {/* قائمة الشحنات */}
           {shipments.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -196,71 +138,55 @@ export function RevenueDetailsDialog({ open, onOpenChange }: RevenueDetailsDialo
             </div>
           )}
 
-          {trips.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Plane className="w-5 h-5 text-purple-500" />
-                الإيرادات الإضافية من الرحلات ({trips.length})
-              </h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {trips.map((trip) => {
-                  const tripRevenue = (trip.tobaccoRevenue || 0) + (trip.otherRevenue || 0)
-                  if (tripRevenue === 0) return null
-
-                  return (
-                    <Card key={trip.id} className="glass-effect hover:shadow-md transition-shadow border-purple-500/20">
-                      <CardContent className="pt-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <Plane className="w-4 h-4 text-purple-500" />
-                              <p className="font-semibold">رحلة {new Date(trip.date).toLocaleDateString("en-GB")}</p>
-                            </div>
-                            <div className="text-sm space-y-1">
-                              {trip.tobaccoRevenue > 0 && (
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <Cigarette className="w-3 h-3" />
-                                  <span>إيرادات التبغ: {trip.tobaccoRevenue.toFixed(2)} د.أ</span>
-                                </div>
-                              )}
-                              {trip.otherRevenue > 0 && (
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <MoreHorizontal className="w-3 h-3" />
-                                  <span>إيرادات أخرى: {trip.otherRevenue.toFixed(2)} د.أ</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm text-muted-foreground">المجموع</p>
-                            <p className="text-xl font-bold text-purple-500">{tripRevenue.toFixed(2)} د.أ</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {shipments.length === 0 && trips.length === 0 && (
+          {shipments.length === 0 && (
             <Card className="glass-effect">
               <CardContent className="pt-6 text-center">
                 <Package className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">لا توجد شحنات أو رحلات مسجلة</p>
+                <p className="text-muted-foreground">لا توجد شحنات مسجلة</p>
               </CardContent>
             </Card>
           )}
 
-          {/* زر الطباعة */}
-          {(shipments.length > 0 || trips.length > 0) && (
-            <div className="flex justify-end print:hidden">
-              <Button onClick={handlePrint} className="gap-2">
-                <Printer className="w-4 h-4" />
-                طباعة التقرير
-              </Button>
-            </div>
+          {shipments.length > 0 && (
+            <>
+              <div className="flex justify-end print:hidden">
+                <Button onClick={handlePrint} className="gap-2">
+                  <Printer className="w-4 h-4" />
+                  طباعة التقرير
+                </Button>
+              </div>
+
+              <style jsx global>{`
+                @media print {
+                  @page {
+                    size: A4 portrait;
+                    margin: 10mm;
+                  }
+                  
+                  * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
+                  }
+                  
+                  body {
+                    width: 190mm !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                  }
+                  
+                  .print\\:hidden {
+                    display: none !important;
+                  }
+                  
+                  .print\\:space-y-4 > * + * {
+                    margin-top: 4mm !important;
+                  }
+                }
+              `}</style>
+            </>
           )}
         </div>
       </DialogContent>

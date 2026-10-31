@@ -24,6 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_shipping_requests_customer_name ON public.shippin
 CREATE INDEX IF NOT EXISTS idx_shipping_requests_request_number ON public.shipping_requests(request_number);
 CREATE INDEX IF NOT EXISTS idx_shipping_requests_request_date ON public.shipping_requests(request_date DESC);
 
+-- Added ON CONFLICT DO NOTHING to prevent errors if data already exists
 -- Insert sample data
 INSERT INTO public.shipping_requests (request_number, customer_name, customer_phone, pickup_location, pickup_address, delivery_location, delivery_address, package_description, estimated_weight, estimated_value, status, notes, request_date)
 VALUES
@@ -34,4 +35,5 @@ VALUES
   ('REQ-2024-005', 'عمر يوسف', '0790123456', 'عمان', 'شارع مكة، عمان', 'الكرك', 'شارع الملك حسين، الكرك', 'أثاث منزلي', 25.0, 800.00, 'rejected', 'الوزن يتجاوز الحد المسموح', NOW() - INTERVAL '1 hour'),
   ('REQ-2024-006', 'ليلى أحمد', '0792345678', 'السلط', 'شارع الحمام، السلط', 'عمان', 'شارع الوحدات، عمان', 'هدايا', 1.5, 120.00, 'approved', NULL, NOW() - INTERVAL '30 minutes'),
   ('REQ-2024-007', 'خالد محمود', '0793456789', 'عمان', 'شارع الجامعة الأردنية، عمان', 'معان', 'شارع الملك عبدالله، معان', 'قطع غيار سيارات', 15.0, 600.00, 'processing', 'يحتاج تغليف خاص', NOW()),
-  ('REQ-2024-008', 'نور الدين', '0794567890', 'جرش', 'شارع الآثار، جرش', 'عمان', 'شارع الجاردنز، عمان', 'تحف ومنتجات يدوية', 4.0, 300.00, 'pending', NULL, NOW());
+  ('REQ-2024-008', 'نور الدين', '0794567890', 'جرش', 'شارع الآثار، جرش', 'عمان', 'شارع الجاردنز، عمان', 'تحف ومنتجات يدوية', 4.0, 300.00, 'pending', NULL, NOW())
+ON CONFLICT (request_number) DO NOTHING;

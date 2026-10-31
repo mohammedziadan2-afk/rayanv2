@@ -1,12 +1,15 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Package, User, TrendingUp, TrendingDown, Trash2, Pencil, Printer, Eye } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
+import { Button } from "@/components/ui/button"
+import { Package, Trash2 } from "lucide-react"
+import { getGroupedWarehouses, deleteWarehouseInventory } from "@/app/actions/warehouse"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,90 +20,71 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { EditWarehouseItemDialog } from "./edit-warehouse-item-dialog"
-import { PrintWarehouseItem } from "./print-warehouse-item"
-import { PreviewWarehouseItemDialog } from "./preview-warehouse-item-dialog"
 
-interface WarehouseItem {
-  id: string
-  shipment_name: string
-  sender_name: string
-  shipment_type: string
-  warehouse_quantity: number
-  delivered_quantity: number
-  remaining_quantity: number
-  tracking_number?: string
-  created_at: string
+interface GroupedWarehouse {
+  warehouse_name: string
+  item_count: number
+  total_received: number
+  total_delivered: number
+  total_remaining: number
 }
 
 export function WarehouseList() {
-  const [items, setItems] = useState<WarehouseItem[]>([])
+  const [warehouses, setWarehouses] = useState<GroupedWarehouse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [editItem, setEditItem] = useState<WarehouseItem | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [printItem, setPrintItem] = useState<WarehouseItem | null>(null)
-  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false)
-  const [previewItem, setPreviewItem] = useState<WarehouseItem | null>(null)
-  const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false)
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; warehouseName: string | null }>({
+    open: false,
+    warehouseName: null,
+  })
+  const router = useRouter()
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
-
-  const fetchItems = async () => {
+  const fetchWarehouses = async () => {
     try {
-      const { data, error } = await supabase
-        .from("warehouse_inventory")
-        .select("*")
-        .order("created_at", { ascending: false })
+      const result = await getGroupedWarehouses()
 
-      if (error) throw error
-      setItems(data || [])
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      console.log("[v0] Fetched grouped warehouses:", result.data)
+      setWarehouses(result.data || [])
     } catch (error) {
-      console.error("Error fetching warehouse items:", error)
+      console.error("[v0] Error fetching warehouse items:", error)
       toast.error("حدث خطأ أثناء تحميل البيانات")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleDelete = async () => {
-    if (!deleteId) return
+  const handleDeleteWarehouse = async () => {
+    if (!deleteDialog.warehouseName) return
 
     try {
-      const { error } = await supabase.from("warehouse_inventory").delete().eq("id", deleteId)
+      const result = await deleteWarehouseInventory(deleteDialog.warehouseName)
 
-      if (error) throw error
+      if (!result.success) {
+        throw new Error(result.error)
+      }
 
-      toast.success("تم حذف الشحنة بنجاح")
-      fetchItems()
+      toast.success("تم حذف المخزون بنجاح")
+      setDeleteDialog({ open: false, warehouseName: null })
+      fetchWarehouses() // Refresh the list
     } catch (error) {
-      console.error("Error deleting item:", error)
-      toast.error("حدث خطأ أثناء حذف الشحنة")
-    } finally {
-      setDeleteId(null)
+      console.error("Error deleting warehouse:", error)
+      toast.error("حدث خطأ أثناء حذف المخزون")
     }
   }
 
-  const handleEdit = (item: WarehouseItem) => {
-    setEditItem(item)
-    setIsEditDialogOpen(true)
-  }
-
-  const handlePrint = (item: WarehouseItem) => {
-    setPrintItem(item)
-    setIsPrintDialogOpen(true)
-  }
-
-  const handlePreview = (item: WarehouseItem) => {
-    setPreviewItem(item)
-    setIsPreviewDialogOpen(true)
+  const handleWarehouseClick = (warehouseName: string, e: React.MouseEvent) => {
+    // Don't navigate if clicking on the delete button or its parent
+    if ((e.target as HTMLElement).closest("button[data-delete-btn]")) {
+      return
+    }
+    router.push(`/warehouse/${encodeURIComponent(warehouseName)}`)
   }
 
   useEffect(() => {
-    fetchItems()
+    fetchWarehouses()
   }, [])
 
   if (isLoading) {
@@ -117,12 +101,12 @@ export function WarehouseList() {
     )
   }
 
-  if (items.length === 0) {
+  if (warehouses.length === 0) {
     return (
       <Card className="p-12 text-center glass-effect">
         <Package className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-xl font-semibold mb-2">لا توجد شحنات في المستودع</h3>
-        <p className="text-muted-foreground">ابدأ بإضافة شحنة جديدة للمستودع</p>
+        <h3 className="text-xl font-semibold mb-2">لا توجد مخزونات</h3>
+        <p className="text-muted-foreground">ابدأ بإضافة مخزون جديد</p>
       </Card>
     )
   }
@@ -130,114 +114,68 @@ export function WarehouseList() {
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => (
-          <Card key={item.id} className="p-6 glass-effect hover:shadow-glow transition-all duration-300">
+        {warehouses.map((warehouse) => (
+          <Card
+            key={warehouse.warehouse_name}
+            className="p-6 glass-effect hover:shadow-glow transition-all duration-300 cursor-pointer"
+            onClick={(e) => handleWarehouseClick(warehouse.warehouse_name, e)}
+          >
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
                 <div className="p-2 rounded-lg gradient-primary">
                   <Package className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg">{item.shipment_name}</h3>
+                <div className="flex-1">
+                  <h3 className="font-bold text-lg">{warehouse.warehouse_name}</h3>
                   <Badge variant="secondary" className="mt-1">
-                    {item.shipment_type}
+                    {warehouse.item_count} {warehouse.item_count === 1 ? "صنف" : "أصناف"}
                   </Badge>
                 </div>
               </div>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handlePreview(item)}
-                  className="text-blue-600 hover:text-blue-600 hover:bg-blue-600/10"
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handlePrint(item)}
-                  className="text-green-600 hover:text-green-600 hover:bg-green-600/10"
-                >
-                  <Printer className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleEdit(item)}
-                  className="text-primary hover:text-primary hover:bg-primary/10"
-                >
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDeleteId(item.id)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+              <Button
+                data-delete-btn
+                variant="destructive"
+                size="icon"
+                onClick={() => setDeleteDialog({ open: true, warehouseName: warehouse.warehouse_name })}
+              >
+                <Trash2 className="w-5 h-5" />
+              </Button>
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">المرسل:</span>
-                <span className="font-medium">{item.sender_name}</span>
-              </div>
-
               <div className="grid grid-cols-3 gap-2 pt-3 border-t">
                 <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-                    <TrendingUp className="w-3 h-3" />
-                    <span>المستودع</span>
-                  </div>
-                  <p className="text-lg font-bold text-primary">{item.warehouse_quantity}</p>
+                  <div className="text-xs text-muted-foreground mb-1">المستلم</div>
+                  <p className="text-lg font-bold text-primary">{Number(warehouse.total_received || 0).toFixed(2)}</p>
                 </div>
 
                 <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
-                    <TrendingDown className="w-3 h-3" />
-                    <span>المسلم</span>
-                  </div>
-                  <p className="text-lg font-bold text-accent">{item.delivered_quantity}</p>
+                  <div className="text-xs text-muted-foreground mb-1">المسلم</div>
+                  <p className="text-lg font-bold text-accent">{Number(warehouse.total_delivered || 0).toFixed(2)}</p>
                 </div>
 
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground mb-1">المتبقي</div>
-                  <p className="text-lg font-bold text-foreground">{item.remaining_quantity}</p>
+                  <p className="text-lg font-bold text-foreground">
+                    {Number(warehouse.total_remaining || 0).toFixed(2)}
+                  </p>
                 </div>
               </div>
             </div>
           </Card>
         ))}
       </div>
-
-      <PreviewWarehouseItemDialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen} item={previewItem} />
-
-      <EditWarehouseItemDialog
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        onItemUpdated={fetchItems}
-        item={editItem}
-      />
-
-      <PrintWarehouseItem open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen} item={printItem} />
-
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, warehouseName: null })}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+            <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
             <AlertDialogDescription>
-              سيتم حذف هذه الشحنة من المستودع بشكل نهائي. لا يمكن التراجع عن هذا الإجراء.
+              هل أنت متأكد من أنك تريد حذف المخزون {deleteDialog.warehouseName}؟
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-              حذف
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteWarehouse}>حذف</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

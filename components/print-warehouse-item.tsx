@@ -40,94 +40,113 @@ export function PrintWarehouseItem({ open, onOpenChange, item }: PrintWarehouseI
           <meta charset="utf-8">
           <title>طباعة شحنة - ${item?.shipment_name}</title>
           <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm;
+            }
+            
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            
             body {
               font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              padding: 40px;
               direction: rtl;
+              width: 190mm;
+              padding: 0;
+              margin: 0;
             }
+            
+            .container {
+              width: 190mm;
+              padding: 10mm;
+              min-height: 277mm;
+            }
+            
             .header {
               text-align: center;
-              margin-bottom: 40px;
-              border-bottom: 3px solid #333;
-              padding-bottom: 20px;
+              margin-bottom: 6mm;
+              border-bottom: 1.5pt solid #333;
+              padding-bottom: 4mm;
             }
             .header h1 {
               margin: 0;
-              font-size: 28px;
+              font-size: 16pt;
               color: #333;
             }
             .header p {
-              margin: 5px 0;
+              margin: 2mm 0 0 0;
               color: #666;
+              font-size: 9pt;
             }
             .info-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              margin-bottom: 30px;
+              gap: 3mm;
+              margin-bottom: 6mm;
             }
             .info-item {
-              padding: 15px;
+              padding: 3mm;
               background: #f5f5f5;
-              border-radius: 8px;
+              border-radius: 2mm;
             }
             .info-label {
               font-weight: bold;
               color: #666;
-              font-size: 14px;
-              margin-bottom: 5px;
+              font-size: 9pt;
+              margin-bottom: 1mm;
             }
             .info-value {
-              font-size: 18px;
+              font-size: 11pt;
               color: #333;
             }
             .quantities {
               display: grid;
               grid-template-columns: repeat(3, 1fr);
-              gap: 15px;
-              margin-top: 30px;
-              padding: 20px;
+              gap: 3mm;
+              margin-top: 6mm;
+              padding: 4mm;
               background: #f9f9f9;
-              border-radius: 8px;
+              border-radius: 2mm;
             }
             .quantity-box {
               text-align: center;
-              padding: 15px;
+              padding: 4mm;
               background: white;
-              border-radius: 8px;
-              border: 2px solid #e0e0e0;
+              border-radius: 2mm;
+              border: 0.5pt solid #e0e0e0;
             }
             .quantity-label {
-              font-size: 12px;
+              font-size: 9pt;
               color: #666;
-              margin-bottom: 5px;
+              margin-bottom: 2mm;
             }
             .quantity-value {
-              font-size: 24px;
+              font-size: 14pt;
               font-weight: bold;
               color: #333;
             }
             .footer {
-              margin-top: 50px;
-              padding-top: 20px;
-              border-top: 2px solid #e0e0e0;
+              margin-top: 8mm;
+              padding-top: 4mm;
+              border-top: 0.5pt solid #e0e0e0;
               text-align: center;
               color: #666;
-              font-size: 12px;
-            }
-            @media print {
-              body {
-                padding: 20px;
-              }
+              font-size: 8pt;
             }
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
+          <div class="container">
+            ${printContent.innerHTML}
+          </div>
         </body>
       </html>
     `)
-
     printWindow.document.close()
     printWindow.focus()
     setTimeout(() => {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
-import { Package, MapPin, User, MessageCircle, ArrowRight } from "lucide-react"
+import { Package, MapPin, User, MessageCircle, ArrowRight, Bell } from "lucide-react"
 import Link from "next/link"
 import { createBrowserClient } from "@/lib/supabase-client"
 import { toast } from "sonner"
@@ -87,14 +87,17 @@ export default function TrackRequestPage() {
     }
   }
 
-  const loadUnreadCount = () => {
+  const loadUnreadCount = async () => {
     if (!request) return
     try {
-      const allMessages = JSON.parse(localStorage.getItem("messages") || "[]")
-      const unread = allMessages.filter(
-        (msg: any) => msg.request_id === request.id && msg.sender_type === "admin" && !msg.read,
-      )
-      setUnreadCount(unread.length)
+      const { data: messages } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("request_id", request.id)
+        .eq("sender_type", "admin")
+        .eq("read", false)
+
+      setUnreadCount(messages?.length || 0)
     } catch (error) {
       console.error("[v0] Error loading unread count:", error)
     }
@@ -186,6 +189,26 @@ export default function TrackRequestPage() {
                   </Badge>
                   <p className="text-muted-foreground mt-2">{statusInfo.description}</p>
                 </div>
+
+                {unreadCount > 0 && (
+                  <div
+                    onClick={() => setIsChatOpen(true)}
+                    className="mx-auto max-w-md p-4 rounded-xl bg-gradient-to-r from-red-500/10 via-orange-500/10 to-red-500/10 border-2 border-red-500/30 cursor-pointer hover:border-red-500/50 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] animate-pulse"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Bell className="w-6 h-6 text-red-500 animate-bounce" />
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="font-bold text-red-600">لديك {unreadCount} رسالة جديدة من الإدارة!</p>
+                        <p className="text-sm text-muted-foreground">اضغط هنا لقراءة الرسائل</p>
+                      </div>
+                      <MessageCircle className="w-5 h-5 text-red-500" />
+                    </div>
+                  </div>
+                )}
+
                 <Button onClick={() => setIsChatOpen(true)} className="gap-2 gradient-accent relative" size="lg">
                   <MessageCircle className="w-5 h-5" />
                   تواصل معنا

@@ -3,22 +3,8 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  ArrowLeft,
-  Trash2,
-  Calendar,
-  Package,
-  Users,
-  Briefcase,
-  RotateCcw,
-  X,
-  AlertTriangle,
-  Truck,
-} from "lucide-react"
-import Link from "next/link"
+import { Trash2, Calendar, Package, RotateCcw, X, AlertTriangle, Truck, Sparkles } from "lucide-react"
 import Image from "next/image"
-import type { Trip } from "@/components/add-trip-dialog"
-import type { Shipment } from "@/components/shipment-form"
 import { useToast } from "@/hooks/use-toast"
 import {
   AlertDialog,
@@ -31,156 +17,158 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getDeletedTrips, restoreTrip, permanentlyDeleteTrip, cleanupOldDeletedTrips } from "@/app/actions/trips"
+import {
+  getDeletedShipments,
+  restoreShipment,
+  permanentlyDeleteShipment,
+  cleanupOldDeletedShipments,
+} from "@/app/actions/shipments"
+import type { Trip } from "@/app/actions/trips"
+import type { ShipmentData } from "@/app/actions/shipments"
+import { AdminFooter } from "@/components/admin-footer"
 
 export default function TrashPage() {
   const [deletedTrips, setDeletedTrips] = useState<Trip[]>([])
-  const [deletedShipments, setDeletedShipments] = useState<Shipment[]>([])
-  const [tripToRestore, setTripToRestore] = useState<string | null>(null)
-  const [tripToDeletePermanently, setTripToDeletePermanently] = useState<string | null>(null)
-  const [shipmentToRestore, setShipmentToRestore] = useState<string | null>(null)
-  const [shipmentToDeletePermanently, setShipmentToDeletePermanently] = useState<string | null>(null)
+  const [deletedShipments, setDeletedShipments] = useState<ShipmentData[]>([])
+  const [itemToRestore, setItemToRestore] = useState<{ type: "trip" | "shipment"; id: string } | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<{ type: "trip" | "shipment"; id: string } | null>(null)
+  const [isCleaningUp, setIsCleaningUp] = useState(false)
+  const [csrfToken, setCsrfToken] = useState<string>("")
   const { toast } = useToast()
 
   useEffect(() => {
-    loadDeletedTrips()
-    loadDeletedShipments()
+    loadData()
+    performAutomaticCleanup()
+    fetchCsrfToken()
   }, [])
 
-  const loadDeletedTrips = () => {
-    const stored = localStorage.getItem("deletedTrips")
-    if (stored) {
-      const trips: Trip[] = JSON.parse(stored)
-
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-
-      const validTrips = trips.filter((trip) => {
-        if (!trip.deletedAt) return true
-        const deletedDate = new Date(trip.deletedAt)
-        return deletedDate > oneMonthAgo
-      })
-
-      if (validTrips.length !== trips.length) {
-        localStorage.setItem("deletedTrips", JSON.stringify(validTrips))
-        toast({
-          title: "تنظيف تلقائي",
-          description: `تم حذف ${trips.length - validTrips.length} رحلة تلقائياً (أقدم من شهر)`,
-        })
+  const fetchCsrfToken = async () => {
+    try {
+      const response = await fetch("/api/csrf-token")
+      const data = await response.json()
+      if (data.token) {
+        setCsrfToken(data.token)
       }
-
-      setDeletedTrips(validTrips)
+    } catch (error) {
+      console.error("[v0] Failed to fetch CSRF token:", error)
     }
   }
 
-  const loadDeletedShipments = () => {
-    const stored = localStorage.getItem("deletedShipments")
-    if (stored) {
-      const shipments: Shipment[] = JSON.parse(stored)
+  const loadData = async () => {
+    const [trips, shipmentsResult] = await Promise.all([getDeletedTrips(), getDeletedShipments()])
 
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+    setDeletedTrips(trips)
+    setDeletedShipments(shipmentsResult.data || [])
+  }
 
-      const validShipments = shipments.filter((shipment) => {
-        if (!shipment.deletedAt) return true
-        const deletedDate = new Date(shipment.deletedAt)
-        return deletedDate > oneMonthAgo
-      })
-
-      if (validShipments.length !== shipments.length) {
-        localStorage.setItem("deletedShipments", JSON.stringify(validShipments))
-        toast({
-          title: "تنظيف تلقائي",
-          description: `تم حذف ${shipments.length - validShipments.length} شحنة تلقائياً (أقدم من شهر)`,
-        })
-      }
-
-      setDeletedShipments(validShipments)
+  const performAutomaticCleanup = async () => {
+    try {
+      await Promise.all([cleanupOldDeletedTrips(), cleanupOldDeletedShipments()])
+    } catch (error) {
+      // Silent error handling
     }
   }
 
-  const handleRestoreTrip = (tripId: string) => {
-    const tripToMove = deletedTrips.find((trip) => trip.id === tripId)
-    if (!tripToMove) return
+  const handleManualCleanup = async () => {
+    setIsCleaningUp(true)
+    try {
+      const [tripsResult, shipmentsResult] = await Promise.all([cleanupOldDeletedTrips(), cleanupOldDeletedShipments()])
 
-    const updatedDeletedTrips = deletedTrips.filter((trip) => trip.id !== tripId)
-    localStorage.setItem("deletedTrips", JSON.stringify(updatedDeletedTrips))
+      const totalCleaned = (tripsResult.count || 0) + (shipmentsResult.count || 0)
 
-    const trips = JSON.parse(localStorage.getItem("trips") || "[]")
-    const { deletedAt, ...tripWithoutDeletedAt } = tripToMove
-    trips.push(tripWithoutDeletedAt)
-    localStorage.setItem("trips", JSON.stringify(trips))
-
-    setDeletedTrips(updatedDeletedTrips)
-    setTripToRestore(null)
-
-    toast({
-      title: "تم الاسترجاع",
-      description: "تم استرجاع الرحلة بنجاح إلى صفحة إدارة الرحلات",
-    })
-
-    window.dispatchEvent(new Event("tripsUpdated"))
+      if (totalCleaned > 0) {
+        toast({
+          title: "تم التنظيف",
+          description: `تم حذف ${totalCleaned} عنصر قديم بشكل نهائي`,
+        })
+        await loadData()
+      } else {
+        toast({
+          title: "لا توجد عناصر قديمة",
+          description: "لا توجد عناصر محذوفة منذ أكثر من 30 يوماً",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل تنظيف العناصر القديمة",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCleaningUp(false)
+    }
   }
 
-  const handleDeleteTripPermanently = (tripId: string) => {
-    const updatedDeletedTrips = deletedTrips.filter((trip) => trip.id !== tripId)
-    localStorage.setItem("deletedTrips", JSON.stringify(updatedDeletedTrips))
+  const handleRestore = async () => {
+    if (!itemToRestore) return
 
-    setDeletedTrips(updatedDeletedTrips)
-    setTripToDeletePermanently(null)
+    try {
+      if (itemToRestore.type === "trip") {
+        const result = await restoreTrip(itemToRestore.id, csrfToken)
+        if (!result.success) {
+          throw new Error(result.error || "فشل الاسترجاع")
+        }
+        toast({ title: "تم الاسترجاع", description: "تم استرجاع الرحلة بنجاح" })
+      } else {
+        const result = await restoreShipment(itemToRestore.id, csrfToken)
+        if (!result.success) {
+          throw new Error(result.error || "فشل الاسترجاع")
+        }
+        toast({ title: "تم الاسترجاع", description: "تم استرجاع الشحنة بنجاح" })
+      }
 
-    toast({
-      title: "تم الحذف النهائي",
-      description: "تم حذف الرحلة نهائياً ولا يمكن استرجاعها",
-      variant: "destructive",
-    })
+      await loadData()
+      setItemToRestore(null)
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: error instanceof Error ? error.message : "فشل استرجاع العنصر",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleRestoreShipment = (shipmentId: string) => {
-    const shipmentToMove = deletedShipments.find((shipment) => shipment.id === shipmentId)
-    if (!shipmentToMove) return
+  const handlePermanentDelete = async () => {
+    if (!itemToDelete) return
 
-    const updatedDeletedShipments = deletedShipments.filter((shipment) => shipment.id !== shipmentId)
-    localStorage.setItem("deletedShipments", JSON.stringify(updatedDeletedShipments))
+    try {
+      if (itemToDelete.type === "trip") {
+        const result = await permanentlyDeleteTrip(itemToDelete.id, csrfToken)
+        if (!result.success) {
+          throw new Error(result.error || "فشل الحذف")
+        }
+        toast({ title: "تم الحذف النهائي", description: "تم حذف الرحلة نهائياً", variant: "destructive" })
+      } else {
+        const result = await permanentlyDeleteShipment(itemToDelete.id, csrfToken)
+        if (!result.success) {
+          throw new Error(result.error || "فشل الحذف")
+        }
+        toast({ title: "تم الحذف النهائي", description: "تم حذف الشحنة نهائياً", variant: "destructive" })
+      }
 
-    const shipments = JSON.parse(localStorage.getItem("shipments") || "[]")
-    const { deletedAt, ...shipmentWithoutDeletedAt } = shipmentToMove
-    shipments.push(shipmentWithoutDeletedAt)
-    localStorage.setItem("shipments", JSON.stringify(shipments))
-
-    setDeletedShipments(updatedDeletedShipments)
-    setShipmentToRestore(null)
-
-    toast({
-      title: "تم الاسترجاع",
-      description: "تم استرجاع الشحنة بنجاح إلى صفحة إدارة الشحنات",
-    })
-
-    window.dispatchEvent(new Event("shipmentsUpdated"))
+      await loadData()
+      setItemToDelete(null)
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: error instanceof Error ? error.message : "فشل الحذف النهائي",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleDeleteShipmentPermanently = (shipmentId: string) => {
-    const updatedDeletedShipments = deletedShipments.filter((shipment) => shipment.id !== shipmentId)
-    localStorage.setItem("deletedShipments", JSON.stringify(updatedDeletedShipments))
+  const getDaysRemaining = (deletedAt: string | null) => {
+    if (!deletedAt) return 30
 
-    setDeletedShipments(updatedDeletedShipments)
-    setShipmentToDeletePermanently(null)
-
-    toast({
-      title: "تم الحذف النهائي",
-      description: "تم حذف الشحنة نهائياً ولا يمكن استرجاعها",
-      variant: "destructive",
-    })
-  }
-
-  const getDaysRemaining = (deletedAt: string) => {
     const deletedDate = new Date(deletedAt)
     const expiryDate = new Date(deletedDate)
-    expiryDate.setMonth(expiryDate.getMonth() + 1)
+    expiryDate.setDate(expiryDate.getDate() + 30)
 
     const now = new Date()
     const daysRemaining = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
-    return daysRemaining
+    return Math.max(0, daysRemaining)
   }
 
   const getStatusInfo = (status: string) => {
@@ -193,12 +181,11 @@ export default function TrashPage() {
       cancelled: { label: "ملغي", color: "text-red-700" },
       returned: { label: "مرتجع", color: "text-orange-700" },
     }
-
     return statusMap[status] || { label: status, color: "text-gray-700" }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-20">
       <header className="glass-effect sticky top-0 z-50 shadow-lg border-b-2 border-primary/10">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6">
           <div className="flex items-center justify-between gap-2 sm:gap-4">
@@ -215,35 +202,34 @@ export default function TrashPage() {
                 </p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <Link href="/">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 bg-transparent"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">العودة</span>
-                </Button>
-              </Link>
-            </div>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-10">
         <div className="space-y-4 sm:space-y-8">
-          <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
-            <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-red-500/10 border-2 border-red-500/20">
-              <Trash2 className="w-5 h-5 sm:w-7 sm:h-7 text-red-600" />
+          <div className="flex items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-8">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-red-500/10 border-2 border-red-500/20">
+                <Trash2 className="w-5 h-5 sm:w-7 sm:h-7 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">سلة المحذوفات</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+                  الرحلات والشحنات المحذوفة - يتم الحذف التلقائي بعد 30 يوم
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">سلة المحذوفات</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-                الرحلات والشحنات المحذوفة - يتم الحذف التلقائي بعد شهر
-              </p>
-            </div>
+
+            <Button
+              onClick={handleManualCleanup}
+              disabled={isCleaningUp}
+              variant="outline"
+              className="gap-2 bg-transparent text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">{isCleaningUp ? "جاري التنظيف..." : "تنظيف تلقائي"}</span>
+            </Button>
           </div>
 
           {(deletedTrips.length > 0 || deletedShipments.length > 0) && (
@@ -253,7 +239,7 @@ export default function TrashPage() {
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-amber-900 dark:text-amber-200">
                     <p className="font-semibold mb-1">تنبيه هام:</p>
-                    <p>سيتم حذف الرحلات والشحنات تلقائياً بعد مرور شهر من تاريخ النقل إلى سلة المحذوفات.</p>
+                    <p>سيتم حذف العناصر تلقائياً بعد مرور 30 يوم من تاريخ النقل إلى سلة المحذوفات.</p>
                   </div>
                 </div>
               </CardContent>
@@ -283,7 +269,7 @@ export default function TrashPage() {
               ) : (
                 <div className="grid gap-4 sm:gap-6">
                   {deletedTrips.map((trip) => {
-                    const daysRemaining = trip.deletedAt ? getDaysRemaining(trip.deletedAt) : 30
+                    const daysRemaining = getDaysRemaining(trip.deleted_at)
 
                     return (
                       <Card
@@ -299,7 +285,7 @@ export default function TrashPage() {
                               <div>
                                 <div className="flex items-center gap-3 mb-1">
                                   <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-600 font-bold text-sm">
-                                    رحلة {trip.serialNumber}
+                                    {trip.trip_number}
                                   </span>
                                   <span
                                     className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
@@ -312,25 +298,17 @@ export default function TrashPage() {
                                   </span>
                                 </div>
                                 <CardTitle className="text-lg">
-                                  {new Date(trip.date).toLocaleDateString("en-GB")}
+                                  {new Date(trip.departure_date).toLocaleDateString("ar-EG")}
                                 </CardTitle>
                                 <CardDescription className="flex items-center gap-4 mt-1">
                                   <span className="flex items-center gap-1">
                                     <Package className="w-3 h-3" />
                                     {trip.shipments.length} شحنة
                                   </span>
-                                  <span className="flex items-center gap-1">
-                                    <Users className="w-3 h-3" />
-                                    {trip.numberOfPeople} أشخاص
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Briefcase className="w-3 h-3" />
-                                    {trip.numberOfBags} شنطة
-                                  </span>
                                 </CardDescription>
-                                {trip.deletedAt && (
+                                {trip.deleted_at && (
                                   <p className="text-xs text-muted-foreground mt-2">
-                                    تاريخ الحذف: {new Date(trip.deletedAt).toLocaleDateString("en-GB")}
+                                    تاريخ الحذف: {new Date(trip.deleted_at).toLocaleDateString("ar-EG")}
                                   </p>
                                 )}
                               </div>
@@ -340,7 +318,7 @@ export default function TrashPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setTripToRestore(trip.id)}
+                                onClick={() => setItemToRestore({ type: "trip", id: trip.id })}
                                 className="gap-2 bg-transparent text-green-600 hover:text-green-700 hover:bg-green-50"
                               >
                                 <RotateCcw className="w-4 h-4" />
@@ -349,7 +327,7 @@ export default function TrashPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setTripToDeletePermanently(trip.id)}
+                                onClick={() => setItemToDelete({ type: "trip", id: trip.id })}
                                 className="gap-2 bg-transparent text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
                                 <X className="w-4 h-4" />
@@ -376,7 +354,7 @@ export default function TrashPage() {
               ) : (
                 <div className="grid gap-4 sm:gap-6">
                   {deletedShipments.map((shipment) => {
-                    const daysRemaining = shipment.deletedAt ? getDaysRemaining(shipment.deletedAt) : 30
+                    const daysRemaining = getDaysRemaining(shipment.deletedAt)
                     const statusInfo = getStatusInfo(shipment.status)
 
                     return (
@@ -414,16 +392,12 @@ export default function TrashPage() {
                                   {shipment.senderName} ← {shipment.receiverName}
                                 </CardTitle>
                                 <CardDescription className="flex items-center gap-4 mt-1 flex-wrap">
-                                  <span>القيمة: {shipment.amount?.toFixed(2)} د.أ</span>
+                                  <span>القيمة: {Number(shipment.amount || 0).toFixed(2)} د.أ</span>
                                   <span>الوزن: {shipment.weight} كجم</span>
-                                  <span>
-                                    {shipment.paymentMethod === "cash" ? "نقداً" : "عند التسليم"} -{" "}
-                                    {shipment.paymentLocation === "sender" ? "عند المرسل" : "عند المستلم"}
-                                  </span>
                                 </CardDescription>
                                 {shipment.deletedAt && (
                                   <p className="text-xs text-muted-foreground mt-2">
-                                    تاريخ الحذف: {new Date(shipment.deletedAt).toLocaleDateString("en-GB")}
+                                    تاريخ الحذف: {new Date(shipment.deletedAt).toLocaleDateString("ar-EG")}
                                   </p>
                                 )}
                               </div>
@@ -433,7 +407,7 @@ export default function TrashPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setShipmentToRestore(shipment.id)}
+                                onClick={() => setItemToRestore({ type: "shipment", id: shipment.id })}
                                 className="gap-2 bg-transparent text-green-600 hover:text-green-700 hover:bg-green-50"
                               >
                                 <RotateCcw className="w-4 h-4" />
@@ -442,7 +416,7 @@ export default function TrashPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setShipmentToDeletePermanently(shipment.id)}
+                                onClick={() => setItemToDelete({ type: "shipment", id: shipment.id })}
                                 className="gap-2 bg-transparent text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
                                 <X className="w-4 h-4" />
@@ -461,91 +435,41 @@ export default function TrashPage() {
         </div>
       </main>
 
-      {/* استرجاع الرحلة */}
-      <AlertDialog open={!!tripToRestore} onOpenChange={() => setTripToRestore(null)}>
+      <AlertDialog open={!!itemToRestore} onOpenChange={() => setItemToRestore(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>استرجاع الرحلة</AlertDialogTitle>
+            <AlertDialogTitle>استرجاع {itemToRestore?.type === "trip" ? "الرحلة" : "الشحنة"}</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من استرجاع هذه الرحلة؟ سيتم نقلها إلى صفحة إدارة الرحلات.
+              هل أنت متأكد من استرجاع هذا العنصر؟ سيتم نقله إلى الصفحة الرئيسية.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => tripToRestore && handleRestoreTrip(tripToRestore)}
-              className="bg-green-600 hover:bg-green-700"
-            >
+            <AlertDialogAction onClick={handleRestore} className="bg-green-600 hover:bg-green-700">
               استرجاع
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* حذف رحلة نهائي */}
-      <AlertDialog open={!!tripToDeletePermanently} onOpenChange={() => setTripToDeletePermanently(null)}>
+      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>حذف نهائي</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من الحذف النهائي لهذه الرحلة؟ لا يمكن التراجع عن هذا الإجراء ولن تتمكن من استرجاعها.
+              هل أنت متأكد من الحذف النهائي؟ لا يمكن التراجع عن هذا الإجراء ولن تتمكن من استرجاع العنصر.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => tripToDeletePermanently && handleDeleteTripPermanently(tripToDeletePermanently)}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogAction onClick={handlePermanentDelete} className="bg-red-600 hover:bg-red-700">
               حذف نهائياً
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* استرجاع الشحنة */}
-      <AlertDialog open={!!shipmentToRestore} onOpenChange={() => setShipmentToRestore(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>استرجاع الشحنة</AlertDialogTitle>
-            <AlertDialogDescription>
-              هل أنت متأكد من استرجاع هذه الشحنة؟ سيتم نقلها إلى صفحة إدارة الشحنات.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => shipmentToRestore && handleRestoreShipment(shipmentToRestore)}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              استرجاع
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* حذف شحنة نهائي */}
-      <AlertDialog open={!!shipmentToDeletePermanently} onOpenChange={() => setShipmentToDeletePermanently(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>حذف نهائي</AlertDialogTitle>
-            <AlertDialogDescription>
-              هل أنت متأكد من الحذف النهائي لهذه الشحنة؟ لا يمكن التراجع عن هذا الإجراء ولن تتمكن من استرجاعها.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                shipmentToDeletePermanently && handleDeleteShipmentPermanently(shipmentToDeletePermanently)
-              }
-              className="bg-red-600 hover:bg-red-700"
-            >
-              حذف نهائياً
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AdminFooter backUrl="/admin" backLabel="الإدارة" />
     </div>
   )
 }

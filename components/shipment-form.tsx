@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { CountrySelect } from "@/components/country-select"
 
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -19,7 +20,7 @@ import {
   CalendarIcon,
   TrendingUp,
   CreditCard,
-  MapPinned,
+  Banknote,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -27,11 +28,14 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { ShipmentInvoice } from "./shipment-invoice"
+import { createShipment } from "@/app/actions/shipments"
+import { CSRFInput } from "@/components/csrf-input"
 
 export interface Shipment {
   id: string
   trackingNumber: string
   senderName: string
+  senderIdNumber: string
   senderPhone: string
   senderAddress: string
   senderCountry: string
@@ -40,19 +44,17 @@ export interface Shipment {
   receiverAddress: string
   receiverCountry: string
   description: string
+  totalAmount: number
+  deposit: number
   amount: number
   weight: number
   receivedDate: string
   status: string
-  paymentMethod: string
-  paymentLocation: string
+  paymentStatus: string
   createdAt: string
-  deletedAt?: string // إضافة حقل تاريخ الحذف
-  location?: {
-    x: number
-    y: number
-    label?: string
-  }
+  deletedAt?: string
+  notes?: string
+  collectionMethod?: string
 }
 
 function generateTrackingNumber(): string {
@@ -72,6 +74,7 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
   const { toast } = useToast()
   const [formData, setFormData] = useState({
     senderName: "",
+    senderIdNumber: "",
     senderPhone: "",
     senderAddress: "",
     senderCountry: "",
@@ -80,24 +83,23 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
     receiverAddress: "",
     receiverCountry: "",
     description: "",
+    totalAmount: "",
+    deposit: "0",
     amount: "",
     weight: "",
     receivedDate: "",
     status: "pending",
-    paymentMethod: "cash",
-    paymentLocation: "sender",
-    location: {
-      x: 0,
-      y: 0,
-      label: "",
-    },
+    paymentStatus: "unpaid",
+    collectionMethod: "driver",
+    notes: "",
   })
 
   const [receivedDate, setReceivedDate] = useState<Date | undefined>(new Date())
   const [showInvoice, setShowInvoice] = useState(false)
   const [savedShipment, setSavedShipment] = useState<Shipment | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.senderName || !formData.receiverName) {
@@ -109,10 +111,10 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
       return
     }
 
-    if (!formData.amount || Number.parseFloat(formData.amount) <= 0) {
+    if (!formData.totalAmount || Number.parseFloat(formData.totalAmount) < 0) {
       toast({
         title: "خطأ",
-        description: "يرجى إدخال قيمة صحيحة للشحنة",
+        description: "يرجى إدخال المبلغ الكلي للشحنة",
         variant: "destructive",
       })
       return
@@ -136,71 +138,131 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
       return
     }
 
-    const trackingNumber = generateTrackingNumber()
+    setIsSubmitting(true)
 
-    const shipment: Shipment = {
-      id: Date.now().toString(),
-      trackingNumber,
-      senderName: formData.senderName,
-      senderPhone: formData.senderPhone,
-      senderAddress: formData.senderAddress,
-      senderCountry: formData.senderCountry,
-      receiverName: formData.receiverName,
-      receiverPhone: formData.receiverPhone,
-      receiverAddress: formData.receiverAddress,
-      receiverCountry: formData.receiverCountry,
-      description: formData.description,
-      amount: Number.parseFloat(formData.amount),
-      weight: Number.parseFloat(formData.weight),
-      receivedDate: receivedDate.toISOString().split("T")[0],
-      status: formData.status,
-      paymentMethod: formData.paymentMethod,
-      paymentLocation: formData.paymentLocation,
-      createdAt: new Date().toISOString(),
-      location: formData.location,
+    try {
+      const form = e.currentTarget as HTMLFormElement
+      const formDataObj = new FormData(form)
+      const csrfToken = formDataObj.get("csrf_token") as string
+
+      const trackingNumber = generateTrackingNumber()
+
+      const totalAmount = Number.parseFloat(formData.totalAmount) || 0
+      const deposit = Number.parseFloat(formData.deposit) || 0
+      const remainingAmount = totalAmount - deposit
+
+      const shipmentData = {
+        trackingNumber,
+        senderName: formData.senderName,
+        senderIdNumber: formData.senderIdNumber,
+        senderPhone: formData.senderPhone,
+        senderAddress: formData.senderAddress,
+        senderCountry: formData.senderCountry,
+        receiverName: formData.receiverName,
+        receiverPhone: formData.receiverPhone,
+        receiverAddress: formData.receiverAddress,
+        receiverCountry: formData.receiverCountry,
+        description: formData.description,
+        totalAmount: totalAmount,
+        deposit: deposit,
+        amount: remainingAmount,
+        weight: Number.parseFloat(formData.weight),
+        receivedDate: receivedDate.toISOString().split("T")[0],
+        status: formData.status,
+        paymentStatus: formData.paymentStatus,
+        collectionMethod: formData.collectionMethod,
+        notes: formData.notes,
+      }
+
+      const result = await createShipment(shipmentData, csrfToken)
+
+      if (!result.success) {
+        toast({
+          title: "خطأ",
+          description: result.error || "فشل في حفظ الشحنة",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "نجح",
+        description: `تمت إضافة الشحنة بنجاح: ${trackingNumber}`,
+        duration: 5000,
+      })
+
+      const shipment: Shipment = {
+        id: result.data.id,
+        trackingNumber: result.data.tracking_number,
+        senderName: result.data.sender_name,
+        senderIdNumber: result.data.sender_id_number,
+        senderPhone: result.data.sender_phone,
+        senderAddress: result.data.sender_address,
+        senderCountry: result.data.sender_country,
+        receiverName: result.data.receiver_name,
+        receiverPhone: result.data.receiver_phone,
+        receiverAddress: result.data.receiver_address,
+        receiverCountry: result.data.receiver_country,
+        description: result.data.description,
+        totalAmount: result.data.total_amount || result.data.price,
+        deposit: result.data.deposit || 0,
+        amount: result.data.price,
+        weight: result.data.weight,
+        receivedDate: result.data.received_date,
+        status: result.data.status,
+        paymentStatus: result.data.payment_status,
+        createdAt: result.data.created_at,
+        notes: result.data.notes,
+        collectionMethod: result.data.collection_method,
+      }
+
+      setSavedShipment(shipment)
+      setShowInvoice(true)
+
+      setReceivedDate(new Date())
+      setFormData({
+        senderName: "",
+        senderIdNumber: "",
+        senderPhone: "",
+        senderAddress: "",
+        senderCountry: "",
+        receiverName: "",
+        receiverPhone: "",
+        receiverAddress: "",
+        receiverCountry: "",
+        description: "",
+        totalAmount: "",
+        deposit: "0",
+        amount: "",
+        weight: "",
+        receivedDate: "",
+        status: "pending",
+        paymentStatus: "unpaid",
+        collectionMethod: "driver",
+        notes: "",
+      })
+
+      window.dispatchEvent(new CustomEvent("shipmentsUpdated"))
+
+      onSuccess?.()
+    } catch (error) {
+      console.error("[v0] Error submitting form:", error)
+      if (error instanceof Error && error.message.includes("CSRF")) {
+        toast({
+          title: "خطأ أمني",
+          description: "رمز الحماية غير صحيح. يرجى تحديث الصفحة والمحاولة مرة أخرى",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "خطأ",
+          description: "حدث خطأ غير متوقع",
+          variant: "destructive",
+        })
+      }
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const existingShipments = JSON.parse(localStorage.getItem("shipments") || "[]")
-
-    const updatedShipments = [shipment, ...existingShipments]
-    localStorage.setItem("shipments", JSON.stringify(updatedShipments))
-
-    window.dispatchEvent(new Event("shipmentsUpdated"))
-
-    toast({
-      title: "نجح",
-      description: `تمت إضافة الشحنة بنجاح: ${trackingNumber}`,
-      duration: 5000,
-    })
-
-    setSavedShipment(shipment)
-    setShowInvoice(true)
-
-    setReceivedDate(new Date())
-    setFormData({
-      senderName: "",
-      senderPhone: "",
-      senderAddress: "",
-      senderCountry: "",
-      receiverName: "",
-      receiverPhone: "",
-      receiverAddress: "",
-      receiverCountry: "",
-      description: "",
-      amount: "",
-      weight: "",
-      receivedDate: "",
-      status: "pending",
-      paymentMethod: "cash",
-      paymentLocation: "sender",
-      location: {
-        x: 0,
-        y: 0,
-        label: "",
-      },
-    })
-
-    onSuccess?.()
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -217,43 +279,25 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
     }))
   }
 
-  const handlePaymentMethodChange = (value: string) => {
+  const handlePaymentStatusChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
-      paymentMethod: value,
+      paymentStatus: value,
     }))
   }
 
-  const handlePaymentLocationChange = (value: string) => {
+  const handleCollectionMethodChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
-      paymentLocation: value,
-    }))
-  }
-
-  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      location: {
-        ...prev.location,
-        [e.target.name]: Number.parseFloat(e.target.value),
-      },
-    }))
-  }
-
-  const handleLocationLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      location: {
-        ...prev.location,
-        label: e.target.value,
-      },
+      collectionMethod: value,
     }))
   }
 
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-6">
+        <CSRFInput />
+
         <div className="space-y-4 p-4 rounded-lg bg-secondary/50">
           <div className="flex items-center gap-2 mb-3">
             <User className="w-4 h-4 text-primary" />
@@ -273,6 +317,21 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="senderIdNumber">رقم الهوية أو جواز السفر</Label>
+            <div className="relative">
+              <FileText className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="senderIdNumber"
+                name="senderIdNumber"
+                value={formData.senderIdNumber}
+                onChange={handleChange}
+                placeholder="أدخل رقم الهوية أو جواز السفر"
+                className="pr-10"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="senderPhone">رقم الهاتف</Label>
             <div className="relative">
               <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -284,24 +343,19 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
                 placeholder="05xxxxxxxx"
                 className="pr-10"
                 dir="ltr"
+                inputMode="tel"
                 style={{ textAlign: "right" }}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="senderCountry">الدولة</Label>
-            <div className="relative">
-              <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="senderCountry"
-                name="senderCountry"
-                value={formData.senderCountry}
-                onChange={handleChange}
-                placeholder="أدخل دولة المرسل"
-                className="pr-10"
-              />
-            </div>
+            <Label>الدولة</Label>
+            <CountrySelect
+              value={formData.senderCountry}
+              onChange={(val) => setFormData((prev) => ({ ...prev, senderCountry: val }))}
+              placeholder="اختر دولة المرسل"
+            />
           </div>
 
           <div className="space-y-2">
@@ -350,24 +404,19 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
                 placeholder="05xxxxxxxx"
                 className="pr-10"
                 dir="ltr"
+                inputMode="tel"
                 style={{ textAlign: "right" }}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="receiverCountry">الدولة</Label>
-            <div className="relative">
-              <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="receiverCountry"
-                name="receiverCountry"
-                value={formData.receiverCountry}
-                onChange={handleChange}
-                placeholder="أدخل دولة المستقبل"
-                className="pr-10"
-              />
-            </div>
+            <Label>الدولة</Label>
+            <CountrySelect
+              value={formData.receiverCountry}
+              onChange={(val) => setFormData((prev) => ({ ...prev, receiverCountry: val }))}
+              placeholder="اختر دولة المستقبل"
+            />
           </div>
 
           <div className="space-y-2">
@@ -401,6 +450,21 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
           </div>
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="notes">ملاحظات</Label>
+          <div className="relative">
+            <FileText className="absolute right-3 top-3 w-4 h-4 text-muted-foreground" />
+            <Textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              placeholder="أدخل أي ملاحظات إضافية"
+              className="pr-10 min-h-[100px]"
+            />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label htmlFor="weight">الوزن (كجم) *</Label>
@@ -412,6 +476,7 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
                 type="number"
                 step="0.01"
                 min="0"
+                inputMode="decimal"
                 value={formData.weight}
                 onChange={handleChange}
                 placeholder="0.00"
@@ -424,16 +489,17 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="amount">قيمة الشحن (د.أ) *</Label>
+            <Label htmlFor="totalAmount">المبلغ الكلي للشحنة (د.أ) *</Label>
             <div className="relative">
               <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                id="amount"
-                name="amount"
+                id="totalAmount"
+                name="totalAmount"
                 type="number"
                 step="0.01"
                 min="0"
-                value={formData.amount}
+                inputMode="decimal"
+                value={formData.totalAmount}
                 onChange={handleChange}
                 placeholder="0.00"
                 className="pr-10"
@@ -445,32 +511,67 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="paymentMethod">طريقة الدفع *</Label>
+            <Label htmlFor="deposit">الدفعة (د.أ)</Label>
+            <div className="relative">
+              <Banknote className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="deposit"
+                name="deposit"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                value={formData.deposit}
+                onChange={handleChange}
+                placeholder="0.00"
+                className="pr-10"
+                dir="ltr"
+                style={{ textAlign: "right" }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>باقي قيمة الشحن (د.أ)</Label>
+            <div className="relative">
+              <DollarSign className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
+              <Input
+                value={((Number.parseFloat(formData.totalAmount) || 0) - (Number.parseFloat(formData.deposit) || 0)).toFixed(2)}
+                readOnly
+                className="pr-10 bg-green-50 border-green-200 font-semibold text-green-700"
+                dir="ltr"
+                style={{ textAlign: "right" }}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paymentStatus">حالة الدفع *</Label>
             <div className="relative">
               <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10 pointer-events-none" />
-              <Select value={formData.paymentMethod} onValueChange={handlePaymentMethodChange}>
+              <Select value={formData.paymentStatus} onValueChange={handlePaymentStatusChange}>
                 <SelectTrigger className="pr-10">
-                  <SelectValue placeholder="اختر طريقة الدفع" />
+                  <SelectValue placeholder="اختر حالة الدفع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">نقداً</SelectItem>
-                  <SelectItem value="on-delivery">عند التسليم</SelectItem>
+                  <SelectItem value="paid">مدفوع</SelectItem>
+                  <SelectItem value="unpaid">غير مدفوع</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="paymentLocation">مكان الدفع *</Label>
+            <Label htmlFor="collectionMethod">طريقة التحصيل *</Label>
             <div className="relative">
-              <MapPinned className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10 pointer-events-none" />
-              <Select value={formData.paymentLocation} onValueChange={handlePaymentLocationChange}>
+              <Banknote className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10 pointer-events-none" />
+              <Select value={formData.collectionMethod} onValueChange={handleCollectionMethodChange}>
                 <SelectTrigger className="pr-10">
-                  <SelectValue placeholder="اختر مكان الدفع" />
+                  <SelectValue placeholder="اختر طريقة التحصيل" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sender">عند المرسل</SelectItem>
-                  <SelectItem value="receiver">عند المستلم</SelectItem>
+                  <SelectItem value="driver">يحصلها السائق</SelectItem>
+                  <SelectItem value="office">حصلت في المكتب</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -517,68 +618,11 @@ export function ShipmentForm({ onSuccess }: ShipmentFormProps) {
               </Select>
             </div>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="locationX">موقع الشحنة (X) *</Label>
-            <div className="relative">
-              <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="locationX"
-                name="x"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.location?.x}
-                onChange={handleLocationChange}
-                placeholder="0.00"
-                className="pr-10"
-                required
-                dir="ltr"
-                style={{ textAlign: "right" }}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="locationY">موقع الشحنة (Y) *</Label>
-            <div className="relative">
-              <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="locationY"
-                name="y"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.location?.y}
-                onChange={handleLocationChange}
-                placeholder="0.00"
-                className="pr-10"
-                required
-                dir="ltr"
-                style={{ textAlign: "right" }}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="locationLabel">وصف الموقع</Label>
-            <div className="relative">
-              <Globe className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="locationLabel"
-                name="label"
-                value={formData.location?.label}
-                onChange={handleLocationLabelChange}
-                placeholder="أدخل وصف الموقع"
-                className="pr-10"
-              />
-            </div>
-          </div>
         </div>
 
-        <Button type="submit" className="w-full gradient-accent" size="lg">
+        <Button type="submit" className="w-full gradient-accent" size="lg" disabled={isSubmitting}>
           <PackagePlus className="w-5 h-5 ml-2" />
-          إضافة الشحنة
+          {isSubmitting ? "جاري الحفظ..." : "إضافة الشحنة"}
         </Button>
       </form>
 

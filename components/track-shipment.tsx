@@ -7,25 +7,38 @@ import { Button } from "@/components/ui/button"
 import { Search, Package, User, Phone, MapPin, Calendar, FileText } from "lucide-react"
 import type { Shipment } from "./shipment-form"
 import { useRouter } from "next/navigation"
+import { getShipmentByTrackingNumber } from "@/app/actions/shipments"
 
 export function TrackShipment() {
   const [trackingNumber, setTrackingNumber] = useState("")
   const [shipment, setShipment] = useState<Shipment | null>(null)
   const [notFound, setNotFound] = useState(false)
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const handleTrack = () => {
+  const handleTrack = async () => {
     if (!trackingNumber.trim()) return
 
-    const shipments: Shipment[] = JSON.parse(localStorage.getItem("shipments") || "[]")
-    const found = shipments.find((s) => s.trackingNumber === trackingNumber.trim())
+    setLoading(true)
+    setNotFound(false)
+    setShipment(null)
 
-    if (found) {
-      setShipment(found)
-      setNotFound(false)
-    } else {
+    try {
+      const result = await getShipmentByTrackingNumber(trackingNumber.trim())
+
+      if (result.success && result.data) {
+        setShipment(result.data as Shipment)
+        setNotFound(false)
+      } else {
+        setShipment(null)
+        setNotFound(true)
+      }
+    } catch (error) {
+      console.error("[v0] Error tracking shipment:", error)
       setShipment(null)
       setNotFound(true)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -58,10 +71,11 @@ export function TrackShipment() {
             className="font-mono"
             dir="ltr"
             style={{ textAlign: "right" }}
+            disabled={loading}
           />
-          <Button onClick={handleTrack} size="lg">
+          <Button onClick={handleTrack} size="lg" disabled={loading}>
             <Search className="w-4 h-4 ml-2" />
-            بحث
+            {loading ? "جاري..." : "بحث"}
           </Button>
         </div>
 

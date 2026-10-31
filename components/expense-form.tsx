@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Receipt, ShoppingCart, DollarSign, Calendar, Tag, FileText } from "lucide-react"
-import type { Expense } from "./expenses-list"
+import { createExpense } from "@/app/actions/expenses"
+import { getCSRFToken } from "@/app/actions/csrf"
 
 interface ExpenseFormProps {
   type: "expense" | "purchase"
@@ -26,6 +27,7 @@ const purchaseCategories = ["معدات", "أثاث", "مواد تعبئة", "أ
 
 export function ExpenseForm({ type, isOpen, onClose, onSuccess }: ExpenseFormProps) {
   const { toast } = useToast()
+  const [csrfToken, setCsrfToken] = useState<string>("")
   const [formData, setFormData] = useState({
     description: "",
     amount: "",
@@ -33,8 +35,18 @@ export function ExpenseForm({ type, isOpen, onClose, onSuccess }: ExpenseFormPro
     category: "",
     notes: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (isOpen) {
+      getCSRFToken().then((token) => {
+        console.log("[v0] ExpenseForm: Got CSRF token on dialog open:", token ? "present" : "missing")
+        setCsrfToken(token)
+      })
+    }
+  }, [isOpen])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.description || !formData.amount || !formData.category) {
@@ -55,23 +67,33 @@ export function ExpenseForm({ type, isOpen, onClose, onSuccess }: ExpenseFormPro
       return
     }
 
-    const expense: Expense = {
-      id: Date.now().toString(),
-      type,
-      description: formData.description,
-      amount: Number.parseFloat(formData.amount),
-      date: formData.date,
-      category: formData.category,
-      notes: formData.notes,
-      createdAt: new Date().toISOString(),
+    setIsSubmitting(true)
+
+    console.log("[v0] ExpenseForm: Using stored CSRF token for submission")
+
+    const result = await createExpense(
+      {
+        category: formData.category,
+        description: formData.description,
+        amount: Number.parseFloat(formData.amount),
+        date: formData.date,
+      },
+      csrfToken,
+    )
+
+    setIsSubmitting(false)
+
+    if (!result.success) {
+      console.log("[v0] ExpenseForm: Expense creation failed:", result.error)
+      toast({
+        title: "خطأ",
+        description: result.error || "حدث خطأ أثناء إضافة المصروف",
+        variant: "destructive",
+      })
+      return
     }
 
-    const existingExpenses = JSON.parse(localStorage.getItem("expenses") || "[]")
-    const updatedExpenses = [expense, ...existingExpenses]
-    localStorage.setItem("expenses", JSON.stringify(updatedExpenses))
-
-    window.dispatchEvent(new Event("expensesUpdated"))
-
+    console.log("[v0] ExpenseForm: Expense created successfully")
     toast({
       title: "تم بنجاح",
       description: `تم إضافة ${type === "expense" ? "المصروف" : "المشترى"} بنجاح`,
@@ -115,6 +137,7 @@ export function ExpenseForm({ type, isOpen, onClose, onSuccess }: ExpenseFormPro
                 placeholder="أدخل وصف المصروف أو المشترى"
                 className="pr-10"
                 required
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -136,6 +159,7 @@ export function ExpenseForm({ type, isOpen, onClose, onSuccess }: ExpenseFormPro
                   required
                   dir="ltr"
                   style={{ textAlign: "right" }}
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -151,6 +175,7 @@ export function ExpenseForm({ type, isOpen, onClose, onSuccess }: ExpenseFormPro
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="pr-10"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -163,6 +188,7 @@ export function ExpenseForm({ type, isOpen, onClose, onSuccess }: ExpenseFormPro
               <Select
                 value={formData.category}
                 onValueChange={(value) => setFormData({ ...formData, category: value })}
+                disabled={isSubmitting}
               >
                 <SelectTrigger className="pr-10">
                   <SelectValue placeholder="اختر الفئة" />
@@ -186,15 +212,22 @@ export function ExpenseForm({ type, isOpen, onClose, onSuccess }: ExpenseFormPro
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="أدخل أي ملاحظات إضافية (اختياري)"
               className="min-h-[80px]"
+              disabled={isSubmitting}
             />
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1 bg-transparent">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1 bg-transparent"
+              disabled={isSubmitting}
+            >
               إلغاء
             </Button>
-            <Button type="submit" className="flex-1">
-              إضافة
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? "جاري الإضافة..." : "إضافة"}
             </Button>
           </div>
         </form>

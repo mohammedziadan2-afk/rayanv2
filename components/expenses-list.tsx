@@ -17,45 +17,48 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { getExpenses, deleteExpense, type Expense } from "@/app/actions/expenses"
+import { getCSRFToken } from "@/app/actions/csrf"
 
-export interface Expense {
-  id: string
-  type: "expense" | "purchase"
-  description: string
-  amount: number
-  date: string
-  category: string
-  notes?: string
-  createdAt: string
-}
+export type { Expense }
 
 export function ExpensesList() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false)
   const [isPurchaseFormOpen, setIsPurchaseFormOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [isLoading, setIsLoading] = useState(true)
+  const [csrfToken, setCsrfToken] = useState<string>("")
   const { toast } = useToast()
 
-  const loadExpenses = () => {
-    const stored = localStorage.getItem("expenses")
-    if (stored) {
-      setExpenses(JSON.parse(stored))
-    }
+  const loadExpenses = async () => {
+    setIsLoading(true)
+    const data = await getExpenses()
+    setExpenses(data)
+    setIsLoading(false)
   }
 
   useEffect(() => {
+    getCSRFToken().then(setCsrfToken)
     loadExpenses()
-
-    const handleUpdate = () => loadExpenses()
-    window.addEventListener("expensesUpdated", handleUpdate)
-
-    return () => window.removeEventListener("expensesUpdated", handleUpdate)
   }, [])
 
-  const deleteExpense = (id: string) => {
-    const updated = expenses.filter((e) => e.id !== id)
-    localStorage.setItem("expenses", JSON.stringify(updated))
-    setExpenses(updated)
+  const handleDeleteExpense = async (id: string) => {
+    const freshToken = await getCSRFToken()
+    const result = await deleteExpense(id, freshToken)
+
+    if (!result.success) {
+      toast({
+        title: "خطأ",
+        description: result.error || "حدث خطأ أثناء حذف المصروف",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const newToken = await getCSRFToken()
+    setCsrfToken(newToken)
+    await loadExpenses()
     toast({
       title: "تم الحذف",
       description: "تم حذف العنصر بنجاح",
@@ -72,11 +75,22 @@ export function ExpensesList() {
     setExpandedItems(newExpanded)
   }
 
-  const expensesList = expenses.filter((e) => e.type === "expense")
-  const purchasesList = expenses.filter((e) => e.type === "purchase")
-  const totalExpenses = expensesList.reduce((sum, e) => sum + e.amount, 0)
-  const totalPurchases = purchasesList.reduce((sum, e) => sum + e.amount, 0)
+  const expensesList = expenses.filter((e) => e.category !== "مشتريات")
+  const purchasesList = expenses.filter((e) => e.category === "مشتريات")
+  const totalExpenses = expensesList.reduce((sum, e) => sum + Number(e.amount), 0)
+  const totalPurchases = purchasesList.reduce((sum, e) => sum + Number(e.amount), 0)
   const grandTotal = totalExpenses + totalPurchases
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">جاري التحميل...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -158,7 +172,7 @@ export function ExpensesList() {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-primary">{expense.amount.toFixed(2)} د.أ</span>
+                      <span className="text-lg font-bold text-primary">{Number(expense.amount).toFixed(2)} د.أ</span>
                       {expandedItems.has(expense.id) ? (
                         <ChevronUp className="w-5 h-5 text-muted-foreground" />
                       ) : (
@@ -168,12 +182,6 @@ export function ExpensesList() {
                   </div>
                   {expandedItems.has(expense.id) && (
                     <div className="p-4 bg-muted/30 border-t border-border">
-                      {expense.notes && (
-                        <div className="mb-3">
-                          <p className="text-sm font-semibold text-muted-foreground mb-1">ملاحظات:</p>
-                          <p className="text-sm text-foreground">{expense.notes}</p>
-                        </div>
-                      )}
                       <div className="flex justify-end">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -191,7 +199,7 @@ export function ExpensesList() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteExpense(expense.id)}>حذف</AlertDialogAction>
+                              <AlertDialogAction onClick={() => handleDeleteExpense(expense.id)}>حذف</AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -248,7 +256,7 @@ export function ExpensesList() {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-accent">{purchase.amount.toFixed(2)} د.أ</span>
+                      <span className="text-lg font-bold text-accent">{Number(purchase.amount).toFixed(2)} د.أ</span>
                       {expandedItems.has(purchase.id) ? (
                         <ChevronUp className="w-5 h-5 text-muted-foreground" />
                       ) : (
@@ -258,12 +266,6 @@ export function ExpensesList() {
                   </div>
                   {expandedItems.has(purchase.id) && (
                     <div className="p-4 bg-muted/30 border-t border-border">
-                      {purchase.notes && (
-                        <div className="mb-3">
-                          <p className="text-sm font-semibold text-muted-foreground mb-1">ملاحظات:</p>
-                          <p className="text-sm text-foreground">{purchase.notes}</p>
-                        </div>
-                      )}
                       <div className="flex justify-end">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -281,7 +283,9 @@ export function ExpensesList() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteExpense(purchase.id)}>حذف</AlertDialogAction>
+                              <AlertDialogAction onClick={() => handleDeleteExpense(purchase.id)}>
+                                حذف
+                              </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>

@@ -38,46 +38,68 @@ export function PrintBudget({ open, onOpenChange, result, startDate, endDate }: 
           <meta charset="utf-8">
           <title>تقرير الميزانية</title>
           <style>
+            @page {
+              size: A4 landscape;
+              margin: 10mm;
+            }
+            
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            
             body {
               font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              padding: 40px;
               direction: rtl;
+              width: 277mm;
+              padding: 0;
+              margin: 0;
             }
+            
+            .container {
+              width: 277mm;
+              padding: 10mm;
+              min-height: 190mm;
+            }
+            
             .header {
               text-align: center;
-              margin-bottom: 40px;
-              border-bottom: 3px solid #333;
-              padding-bottom: 20px;
+              margin-bottom: 5mm;
+              border-bottom: 1.5pt solid #333;
+              padding-bottom: 4mm;
             }
             .header h1 {
               margin: 0;
-              font-size: 32px;
+              font-size: 16pt;
               color: #333;
             }
             .header p {
-              margin: 10px 0;
+              margin: 2mm 0 0 0;
               color: #666;
-              font-size: 16px;
+              font-size: 9pt;
             }
             .period {
               text-align: center;
-              padding: 15px;
+              padding: 3mm;
               background: #f5f5f5;
-              border-radius: 8px;
-              margin-bottom: 30px;
-              font-size: 18px;
+              border-radius: 2mm;
+              margin-bottom: 5mm;
+              font-size: 10pt;
               color: #333;
             }
             .summary-grid {
               display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 20px;
-              margin-bottom: 30px;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 3mm;
+              margin-bottom: 5mm;
             }
             .summary-item {
-              padding: 20px;
-              border-radius: 8px;
-              border: 2px solid #e0e0e0;
+              padding: 4mm;
+              border-radius: 2mm;
+              border: 0.5pt solid #e0e0e0;
             }
             .summary-item.revenue {
               background: #f0fdf4;
@@ -96,21 +118,21 @@ export function PrintBudget({ open, onOpenChange, result, startDate, endDate }: 
               border-color: #d8b4fe;
             }
             .summary-label {
-              font-size: 14px;
+              font-size: 9pt;
               color: #666;
-              margin-bottom: 8px;
+              margin-bottom: 2mm;
             }
             .summary-value {
-              font-size: 28px;
+              font-size: 14pt;
               font-weight: bold;
               color: #333;
             }
             .budget-final {
-              padding: 30px;
-              border-radius: 12px;
+              padding: 5mm;
+              border-radius: 3mm;
               text-align: center;
-              margin-top: 30px;
-              border: 4px solid;
+              margin-top: 5mm;
+              border: 1.5pt solid;
             }
             .budget-final.positive {
               background: #f0fdf4;
@@ -121,14 +143,14 @@ export function PrintBudget({ open, onOpenChange, result, startDate, endDate }: 
               border-color: #ef4444;
             }
             .budget-label {
-              font-size: 18px;
+              font-size: 11pt;
               color: #666;
-              margin-bottom: 10px;
+              margin-bottom: 2mm;
             }
             .budget-value {
-              font-size: 42px;
+              font-size: 22pt;
               font-weight: bold;
-              margin-bottom: 10px;
+              margin-bottom: 2mm;
             }
             .budget-value.positive {
               color: #16a34a;
@@ -137,26 +159,23 @@ export function PrintBudget({ open, onOpenChange, result, startDate, endDate }: 
               color: #dc2626;
             }
             .budget-status {
-              font-size: 16px;
+              font-size: 9pt;
               color: #666;
             }
             .footer {
-              margin-top: 50px;
-              padding-top: 20px;
-              border-top: 2px solid #e0e0e0;
+              margin-top: 8mm;
+              padding-top: 4mm;
+              border-top: 0.5pt solid #e0e0e0;
               text-align: center;
               color: #666;
-              font-size: 12px;
-            }
-            @media print {
-              body {
-                padding: 20px;
-              }
+              font-size: 8pt;
             }
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
+          <div class="container">
+            ${printContent.innerHTML}
+          </div>
         </body>
       </html>
     `)

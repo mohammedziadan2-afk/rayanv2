@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { DollarSign, Package, TrendingUp } from "lucide-react"
-import type { Shipment } from "./shipment-form"
 import {
   Dialog,
   DialogContent,
@@ -13,29 +12,34 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { getShipments, type ShipmentData } from "@/app/actions/shipments"
 
 export function ShipmentSummary() {
-  const [shipments, setShipments] = useState<Shipment[]>([])
+  const [shipments, setShipments] = useState<ShipmentData[]>([])
   const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const loadShipments = () => {
-    const stored = localStorage.getItem("shipments")
-    if (stored) {
-      setShipments(JSON.parse(stored))
+  const loadShipments = async () => {
+    setIsLoading(true)
+    try {
+      const result = await getShipments()
+      if (result.success && result.data) {
+        setShipments(result.data)
+      }
+    } catch (error) {
+      console.error("[v0] Error loading shipments:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    loadShipments()
+    if (isOpen) {
+      loadShipments()
+    }
+  }, [isOpen])
 
-    // Listen for updates
-    const handleUpdate = () => loadShipments()
-    window.addEventListener("shipmentsUpdated", handleUpdate)
-
-    return () => window.removeEventListener("shipmentsUpdated", handleUpdate)
-  }, [])
-
-  const totalAmount = shipments.reduce((sum, shipment) => sum + (shipment.amount || 0), 0)
+  const totalAmount = shipments.reduce((sum, shipment) => sum + Number(shipment.amount || 0), 0)
   const totalShipments = shipments.length
   const averageAmount = totalShipments > 0 ? totalAmount / totalShipments : 0
 
@@ -100,7 +104,13 @@ export function ShipmentSummary() {
           </div>
 
           {/* Recent Shipments */}
-          {shipments.length > 0 && (
+          {isLoading ? (
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-muted-foreground">جاري التحميل...</p>
+              </CardContent>
+            </Card>
+          ) : shipments.length > 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle className="text-sm font-medium">آخر 5 شحنات</CardTitle>
@@ -116,13 +126,13 @@ export function ShipmentSummary() {
                         <p className="font-medium text-foreground">{shipment.senderName}</p>
                         <p className="text-xs text-muted-foreground">{shipment.trackingNumber}</p>
                       </div>
-                      <p className="font-semibold text-accent">{shipment.amount?.toFixed(2) || "0.00"} د.أ</p>
+                      <p className="font-semibold text-accent">{Number(shipment.amount || 0).toFixed(2)} د.أ</p>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

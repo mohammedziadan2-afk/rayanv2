@@ -1,0 +1,1 @@
+ALTER TABLE driver_tasks ADD COLUMN IF NOT EXISTS cash_note TEXT;

@@ -1,16 +1,18 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Calendar, Printer, Filter, Package, Search, Eye, FileText, TrendingUp, Clock } from "lucide-react"
+import { Calendar, Printer, Filter, Package, Search, Eye, FileText, TrendingUp, Clock } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import type { Shipment } from "@/components/shipment-form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AdminFooter } from "@/components/admin-footer"
 
 export default function ShippingHistoryPage() {
   const [shipments, setShipments] = useState<Shipment[]>([])
@@ -31,20 +33,30 @@ export default function ShippingHistoryPage() {
     filterShipments()
   }, [startDate, endDate, statusFilter, searchQuery, shipments])
 
-  const loadShipments = () => {
-    const stored = localStorage.getItem("shipments")
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      // Filter out deleted shipments
-      const activeShipments = parsed.filter((s: Shipment) => !s.deletedAt)
-      setShipments(activeShipments)
+  const loadShipments = async () => {
+    try {
+      const { getAllShipments } = await import("@/app/actions/shipments")
+      const result = await getAllShipments()
+
+      if (result.success && result.data) {
+        // Filter out deleted shipments
+        const activeShipments = result.data.filter((s: Shipment) => !s.deletedAt)
+        setShipments(activeShipments)
+      }
+    } catch (error) {
+      console.error("[v0] Error loading shipments:", error)
     }
   }
 
-  const loadCompanyInfo = () => {
-    const stored = localStorage.getItem("companyInfo")
-    if (stored) {
-      setCompanyInfo(JSON.parse(stored))
+  const loadCompanyInfo = async () => {
+    try {
+      const { getCompanyInfo } = await import("@/app/actions/company")
+      const info = await getCompanyInfo()
+      if (info) {
+        setCompanyInfo(info)
+      }
+    } catch (error) {
+      console.error("[v0] Error loading company info:", error)
     }
   }
 
@@ -116,28 +128,22 @@ export default function ShippingHistoryPage() {
 
   const calculateStats = () => {
     const total = filteredShipments.length
+    const pending = filteredShipments.filter((s) => s.status === "pending").length
     const delivered = filteredShipments.filter((s) => s.status === "delivered").length
-    const inTransit = filteredShipments.filter(
-      (s) => s.status === "in-transit" || s.status === "out-for-delivery",
-    ).length
-    const totalRevenue = filteredShipments.reduce((sum, s) => sum + (s.amount || 0), 0)
+    const inTransit = filteredShipments.filter((s) => s.status === "in_transit").length
+    const totalRevenue = filteredShipments.reduce((sum, s) => sum + Number(s.amount || 0), 0)
 
-    return { total, delivered, inTransit, totalRevenue }
+    return { total, pending, delivered, inTransit, totalRevenue }
   }
 
   const stats = calculateStats()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-20">
       <header className="glass-effect sticky top-0 z-50 shadow-lg border-b-2 border-primary/10 print:hidden">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
               <div>
                 <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                   <Clock className="w-6 h-6 text-primary" />
@@ -392,7 +398,7 @@ export default function ShippingHistoryPage() {
                             {getStatusInfo(shipment.status).label}
                           </span>
                         </TableCell>
-                        <TableCell className="font-bold text-accent">{shipment.amount.toFixed(2)}</TableCell>
+                        <TableCell className="font-bold text-accent">{Number(shipment.amount).toFixed(2)}</TableCell>
                         <TableCell className="print:hidden">
                           <Link href={`/shipment/${shipment.id}`}>
                             <Button variant="ghost" size="sm" className="gap-2">
@@ -410,6 +416,9 @@ export default function ShippingHistoryPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Admin Footer */}
+      <AdminFooter backUrl="/admin" backLabel="الإدارة" />
 
       <style jsx global>{`
         @media print {

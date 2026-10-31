@@ -1,19 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import {
-  Package,
-  FileText,
-  Search,
-  ArrowRight,
-  MessageCircle,
-  Bell,
-  MapPin,
-  Phone,
-  Mail,
-  Globe,
-  Smartphone,
-} from "lucide-react"
+import { Package, Search, MapPin, Phone, MessageCircle, Bell, FileText, Mail, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -26,33 +14,42 @@ import { toast } from "sonner"
 import { ChatDialog } from "@/components/chat-dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Image from "next/image"
+import { AdminFooter } from "@/components/admin-footer"
+import { getShippingRequestByNumber, type ShippingRequest } from "@/app/actions/shipping-requests"
+import { ArrowRight } from "lucide-react" // Added ArrowRight import
+import { Smartphone } from "lucide-react" // Added Smartphone import
 
-interface ShippingRequest {
-  id: string
-  request_number: string
-  customer_name: string
-  customer_phone: string | null
-  pickup_location: string
-  pickup_address: string | null
-  delivery_location: string
-  delivery_address: string | null
-  package_description: string | null
-  estimated_weight: number | null
-  estimated_value: number | null
-  status: string
-  notes: string | null
-  request_date: string
-  created_at: string
-  updated_at: string
-}
+const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+
+// interface ShippingRequest {
+//   id: string
+//   request_number: string
+//   customer_name: string
+//   customer_phone: string | null
+//   pickup_location: string
+//   pickup_address: string | null
+//   delivery_location: string
+//   delivery_address: string | null
+//   package_description: string | null
+//   estimated_weight: number | null
+//   estimated_value: number | null
+//   status: string
+//   notes: string | null
+//   request_date: string
+//   created_at: string
+//   updated_at: string
+// }
 
 const getStatusInfo = (status: string) => {
-  const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  const statusMap: Record<
+    string,
+    { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" }
+  > = {
     pending: { label: "قيد الانتظار", variant: "outline" },
     approved: { label: "تمت الموافقة", variant: "default" },
     processing: { label: "قيد المعالجة", variant: "secondary" },
     rejected: { label: "مرفوض", variant: "destructive" },
-    completed: { label: "مكتمل", variant: "default" },
+    completed: { label: "مكتمل", variant: "success" },
   }
 
   return statusMap[status] || { label: status, variant: "outline" }
@@ -68,8 +65,6 @@ export default function CustomersPage() {
   const [isPhoneDialogOpen, setIsPhoneDialogOpen] = useState(false)
   const [selectedPhone, setSelectedPhone] = useState<{ number: string; whatsapp: string } | null>(null)
 
-  const supabase = createBrowserClient()
-
   const handlePhoneClick = (phoneNumber: string, whatsappLink: string) => {
     setSelectedPhone({ number: phoneNumber, whatsapp: whatsappLink })
     setIsPhoneDialogOpen(true)
@@ -83,34 +78,45 @@ export default function CustomersPage() {
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
-        .from("shipping_requests")
-        .select("*")
-        .eq("request_number", requestNumber.trim())
-        .single()
 
-      if (error) {
+      const data = await getShippingRequestByNumber(requestNumber.trim())
+
+      if (!data) {
         toast.error("رقم الطلب غير موجود")
         setRequest(null)
         return
       }
 
-      setRequest(data)
-      const messages = JSON.parse(localStorage.getItem("shipping_messages") || "[]")
-      const unreadMessages = messages.filter(
-        (msg: any) => msg.request_id === data.id && msg.sender_type === "admin" && msg.read === false,
-      )
-      setUnreadCount(unreadMessages.length)
+      setRequest({
+        ...data,
+        pickup_location: data.pickup_address,
+        delivery_location: data.delivery_address,
+        request_date: data.created_at,
+      } as any)
 
-      if (unreadMessages.length > 0) {
-        toast.success(`تم العثور على الطلب - لديك ${unreadMessages.length} رسالة جديدة!`, {
-          duration: 5000,
-        })
-      } else {
+      // For messages, we'll still use Supabase if messages table is there
+      try {
+        const { data: messages } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("request_id", data.id)
+          .eq("sender_type", "admin")
+          .eq("read", false)
+
+        const unreadMessages = messages || []
+        setUnreadCount(unreadMessages.length)
+
+        if (unreadMessages.length > 0) {
+          toast.success(`تم العثور على الطلب - لديك ${unreadMessages.length} رسالة جديدة!`, {
+            duration: 5000,
+          })
+        } else {
+          toast.success("تم العثور على الطلب")
+        }
+      } catch (msgError) {
         toast.success("تم العثور على الطلب")
       }
     } catch (error) {
-      console.error("[v0] Error tracking request:", error)
       toast.error("حدث خطأ أثناء البحث عن الطلب")
       setRequest(null)
     } finally {
@@ -130,8 +136,8 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <header className="glass-effect sticky top-0 z-50 shadow-lg border-b-2 border-primary/10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-20">
+      <header className="glass-effect sticky top-0 z-50 shadow-lg border-b-2 border-sky-300/30 bg-white/80 backdrop-blur-md">
         <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
@@ -199,50 +205,65 @@ export default function CustomersPage() {
 
             <div className="mt-4 sm:mt-6 space-1 sm:space-y-2">
               <p className="text-sm sm:text-base md:text-lg font-semibold text-muted-foreground">المدير العام</p>
-              <p className="text-lg sm:text-xl md:text-2xl font-bold gradient-text">محمد زيدان</p>
+              <p className="text-lg sm:text-xl md:text-2xl font-bold gradient-text">محمدزيدان</p>
             </div>
           </div>
 
-          <Card className="glass-effect border-2 border-primary/20 shadow-glow">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl sm:text-3xl gradient-text">عن المؤسسة</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 p-4 sm:p-6">
-              <p className="text-lg text-center text-muted-foreground leading-relaxed">
-                مؤسسة الريان واريان للخدمات اللوجستية في الشحن هي مؤسسة متخصصة في خدمات الشحن والنقل المحلي والدولي.
-                نفخر بتقديم خدمات عالية الجودة مع الالتزام بالمواعيد والأمان في التعامل مع شحناتكم.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                <div className="text-center p-6 rounded-xl glass-effect border border-primary/20 hover:shadow-glow transition-all duration-300">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full gradient-primary flex items-center justify-center shadow-glow">
-                    <Package className="w-8 h-8 text-primary-foreground" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">شحن سريع</h3>
-                  <p className="text-sm text-muted-foreground">توصيل سريع وآمن لجميع الشحنات</p>
-                </div>
-
-                <div className="text-center p-6 rounded-xl glass-effect border border-primary/20 hover:shadow-glow transition-all duration-300">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full gradient-secondary flex items-center justify-center shadow-glow">
-                    <Globe className="w-8 h-8 text-primary-foreground" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">تغطية عالمية</h3>
-                  <p className="text-sm text-muted-foreground">نغطي الأردن وفلسطين ودول الخليج والعالم</p>
-                </div>
-
-                <div className="text-center p-6 rounded-xl glass-effect border border-primary/20 hover:shadow-glow transition-all duration-300">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full gradient-accent flex items-center justify-center shadow-glow">
-                    <MessageCircle className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">دعم متواصل</h3>
-                  <p className="text-sm text-muted-foreground">فريق دعم متاح على مدار الساعة</p>
+          {/* START: Updated Floating Buttons with sky-cyan-emerald gradients */}
+          <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 space-y-4 flex flex-col">
+            <Link href="/track-shipment" className="group">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-sky-500 to-cyan-500 rounded-full blur-xl opacity-60 group-hover:opacity-80 animate-pulse transition-all duration-300" />
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full glass-effect border-2 border-sky-400/30 hover:border-sky-400/60 flex flex-col items-center justify-center gap-1 shadow-glow hover:scale-110 transition-all duration-300 bg-white/90 dark:bg-gray-900/90">
+                  <Search className="w-5 h-5 sm:w-7 sm:h-7 text-sky-600" />
+                  <span className="text-[8px] sm:text-[10px] font-bold text-center leading-tight">
+                    تتبع
+                    <br />
+                    الشحنات
+                  </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </Link>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            <Link href="/track" className="group">
+            <Link href="/request-shipping" className="group">
+              <div className="relative">
+                <div
+                  className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-emerald-500 rounded-full blur-xl opacity-60 group-hover:opacity-80 animate-pulse transition-all duration-300"
+                  style={{ animationDelay: "0.2s" }}
+                />
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full glass-effect border-2 border-cyan-400/30 hover:border-cyan-400/60 flex flex-col items-center justify-center gap-1 shadow-glow hover:scale-110 transition-all duration-300 bg-white/90 dark:bg-gray-900/90">
+                  <Package className="w-5 h-5 sm:w-7 sm:h-7 text-cyan-600" />
+                  <span className="text-[8px] sm:text-[10px] font-bold text-center leading-tight">
+                    طلب
+                    <br />
+                    شحنة
+                  </span>
+                </div>
+              </div>
+            </Link>
+
+            <button onClick={() => setIsTrackDialogOpen(true)} className="group">
+              <div className="relative">
+                <div
+                  className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full blur-xl opacity-60 group-hover:opacity-80 animate-pulse transition-all duration-300"
+                  style={{ animationDelay: "0.4s" }}
+                />
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full glass-effect border-2 border-emerald-500/30 hover:border-emerald-500/60 flex flex-col items-center justify-center gap-1 shadow-glow hover:scale-110 transition-all duration-300 bg-white/90 dark:bg-gray-900/90">
+                  <FileText className="w-5 h-5 sm:w-7 sm:h-7 text-emerald-600" />
+                  <span className="text-[8px] sm:text-[10px] font-bold text-center leading-tight">
+                    تتبع
+                    <br />
+                    الطلبات
+                  </span>
+                </div>
+              </div>
+            </button>
+          </div>
+          {/* END: Updated Floating Buttons */}
+
+          {/* START: Removed old smaller cards */}
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:hidden">
+            <Link href="/track-shipment" className="group">
               <Card className="glass-effect hover:shadow-glow transition-all duration-300 h-full border-2 hover:border-primary/50">
                 <CardHeader className="text-center p-4 sm:p-6">
                   <div className="mx-auto mb-3 sm:mb-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl gradient-primary shadow-glow w-fit group-hover:scale-110 transition-transform duration-300">
@@ -296,9 +317,10 @@ export default function CustomersPage() {
                 </Button>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
+          {/* END: Removed old smaller cards */}
 
-          <Card className="glass-effect border-2 border-primary/20 shadow-glow overflow-hidden">
+          <Card className="glass-effect border-2 border-sky-200 shadow-glow overflow-hidden bg-white/80 backdrop-blur-sm">
             <CardHeader className="text-center relative p-4 sm:p-6">
               {/* Animated globe background */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 opacity-10">
@@ -524,7 +546,7 @@ export default function CustomersPage() {
                           <div className="relative w-full h-48 sm:h-56 md:h-64 mb-3 sm:mb-4 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 p-3 sm:p-4 overflow-hidden">
                             <div className="relative w-full h-full flex items-center justify-center">
                               <Image
-                                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-10-04%20044022-ndE9r2Zmy866A7KoAlLYzaIt2qk60O.png"
+                                src="/images/screenshot-202025-10-04-20044022.png"
                                 alt="خريطة الأردن"
                                 width={240}
                                 height={300}
@@ -673,7 +695,7 @@ export default function CustomersPage() {
                           <div className="relative w-full h-48 sm:h-56 md:h-64 mb-3 sm:mb-4 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/5 to-primary/10 p-3 sm:p-4 overflow-hidden">
                             <div className="relative w-full h-full flex items-center justify-center">
                               <Image
-                                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Screenshot%202025-10-04%20044953-xw0I1GP0ejAp8cRqdWYar5ui0wMd6r.png"
+                                src="/images/screenshot-202025-10-04-20044953.png"
                                 alt="خريطة فلسطين"
                                 width={200}
                                 height={300}
@@ -851,7 +873,7 @@ export default function CustomersPage() {
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-accent to-transparent"></div>
                   <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent flex items-center gap-2">
-                    <Globe className="w-6 h-6 text-amber-500 animate-spin" style={{ animationDuration: "8s" }} />
+                    <Globe className="w-6 h-6 animate-spin" style={{ animationDuration: "8s" }} />
                     باقي دول العالم
                   </h3>
                   <div className="h-1 flex-1 bg-gradient-to-r from-transparent via-accent to-transparent"></div>
@@ -902,7 +924,7 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-effect border-2 border-primary/20 shadow-glow">
+          <Card className="glass-effect border-2 border-cyan-200 bg-white/80 backdrop-blur-sm">
             <CardHeader className="text-center p-4 sm:p-6">
               <CardTitle className="text-xl sm:text-2xl md:text-3xl gradient-text">تواصل معنا</CardTitle>
               <CardDescription className="text-sm sm:text-base md:text-lg">نحن هنا لخدمتك في أي وقت</CardDescription>
@@ -990,7 +1012,7 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-effect border-2 border-primary/20">
+          <Card className="glass-effect border-2 border-emerald-200 bg-white/80 backdrop-blur-sm">
             <CardHeader className="p-4 sm:p-6">
               <CardTitle className="text-center text-xl sm:text-2xl">كيف تستخدم البوابة؟</CardTitle>
             </CardHeader>
@@ -1037,7 +1059,9 @@ export default function CustomersPage() {
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">تتبع طلب الشحن</DialogTitle>
-            <DialogDescription>أدخل رقم طلب الشحن لمعرفة حالته والتواصل معنا</DialogDescription>
+            <DialogDescription className="text-center" dir="ltr">
+              أدخل رقم طلب الشحن لمعرفة حالته والتواصل معنا
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
@@ -1192,6 +1216,7 @@ export default function CustomersPage() {
           isAdmin={false}
         />
       )}
+      <AdminFooter backUrl="/" backLabel="الرئيسية" />
     </div>
   )
 }

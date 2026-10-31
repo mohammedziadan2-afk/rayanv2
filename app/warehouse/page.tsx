@@ -2,22 +2,22 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Warehouse, ArrowRight } from "lucide-react"
-import { AddWarehouseItemDialog } from "@/components/add-warehouse-item-dialog"
+import { Plus, Warehouse } from "lucide-react"
+import { AddInventoryDialog } from "@/components/add-inventory-dialog"
 import { WarehouseList } from "@/components/warehouse-list"
-import Link from "next/link"
 import Image from "next/image"
+import { AdminFooter } from "@/components/admin-footer"
 
 export default function WarehousePage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const handleItemAdded = () => {
+  const handleInventoryAdded = () => {
     setRefreshKey((prev) => prev + 1)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-20">
       <header className="glass-effect sticky top-0 z-50 shadow-lg border-b-2 border-primary/10">
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-6">
           <div className="flex items-center justify-between gap-2 sm:gap-4">
@@ -35,26 +35,15 @@ export default function WarehousePage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-              <Link href="/">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 bg-transparent"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  <span className="hidden md:inline">العودة للرئيسية</span>
-                </Button>
-              </Link>
-              <Button
-                size="sm"
-                onClick={() => setIsAddDialogOpen(true)}
-                className="gap-1 sm:gap-2 gradient-primary shadow-glow hover:shadow-glow-accent transition-all duration-300"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden md:inline">إضافة شحنة</span>
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              onClick={() => setIsAddDialogOpen(true)}
+              className="gap-1 sm:gap-2 gradient-primary shadow-glow hover:shadow-glow-accent transition-all duration-300"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden md:inline">إضافة مخزون</span>
+              <span className="md:hidden">إضافة</span>
+            </Button>
           </div>
         </div>
       </header>
@@ -75,7 +64,13 @@ export default function WarehousePage() {
         </div>
       </main>
 
-      <AddWarehouseItemDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onItemAdded={handleItemAdded} />
+      <AdminFooter backUrl="/admin" backLabel="الإدارة" />
+
+      <AddInventoryDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onInventoryAdded={handleInventoryAdded}
+      />
     </div>
   )
 }

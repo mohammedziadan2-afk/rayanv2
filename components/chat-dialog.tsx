@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -59,27 +58,20 @@ export function ChatDialog({
     }
   }, [messages])
 
-  const loadMessages = () => {
+  const loadMessages = async () => {
     try {
       setLoading(true)
-      const allMessages = JSON.parse(localStorage.getItem("messages") || "[]") as Message[]
-      const requestMessages = allMessages
-        .filter((msg) => msg.request_id === requestId)
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      const { getMessages, markMessagesAsRead } = await import("@/app/actions/messages")
 
-      setMessages(requestMessages)
+      const allMessages = await getMessages(requestId)
+      const sortedMessages = allMessages.sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      )
 
-      if (isAdmin) {
-        const updatedMessages = allMessages.map((msg) =>
-          msg.request_id === requestId && msg.sender_type === "customer" && !msg.read ? { ...msg, read: true } : msg,
-        )
-        localStorage.setItem("messages", JSON.stringify(updatedMessages))
-      } else {
-        const updatedMessages = allMessages.map((msg) =>
-          msg.request_id === requestId && msg.sender_type === "admin" && !msg.read ? { ...msg, read: true } : msg,
-        )
-        localStorage.setItem("messages", JSON.stringify(updatedMessages))
-      }
+      setMessages(sortedMessages)
+
+      const viewerType = isAdmin ? "admin" : "customer"
+      await markMessagesAsRead(requestId, viewerType)
     } catch (error) {
       console.error("[v0] Error loading messages:", error)
     } finally {
@@ -87,28 +79,23 @@ export function ChatDialog({
     }
   }
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!newMessage.trim()) return
 
     try {
       setSending(true)
-      const allMessages = JSON.parse(localStorage.getItem("messages") || "[]") as Message[]
+      const { createMessage } = await import("@/app/actions/messages")
 
-      const newMsg: Message = {
-        id: Date.now().toString(),
+      await createMessage({
         request_id: requestId,
         sender_type: isAdmin ? "admin" : "customer",
         sender_name: isAdmin ? "إدارة الشحن" : customerName,
         message: newMessage.trim(),
-        created_at: new Date().toISOString(),
-        read: false,
-      }
-
-      allMessages.push(newMsg)
-      localStorage.setItem("messages", JSON.stringify(allMessages))
+        request_number: requestNumber, // Added for interface compatibility
+      })
 
       setNewMessage("")
-      loadMessages()
+      await loadMessages()
       toast.success("تم إرسال الرسالة")
     } catch (error) {
       console.error("[v0] Error sending message:", error)

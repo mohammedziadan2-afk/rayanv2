@@ -1,0 +1,67 @@
+{
+  "name": "مؤسسة الريان واريان للشحن",
+  "short_name": "الريان للشحن",
+  "description": "خدمة توصيل الطرود والشحنات من الأردن إلى فلسطين بأسعار منافسة وسرعة عالية",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#ffffff",
+  "theme_color": "#0f4c81",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "logistics", "shipping"],
+  "shortcuts": [
+    {
+      "name": "تتبع شحنة",
+      "short_name": "تتبع",
+      "description": "تتبع حالة شحنتك",
+      "url": "/track",
+      "icons": [{ "src": "/images/logo.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "طلب شحنة جديدة",
+      "short_name": "طلب شحنة",
+      "description": "تقديم طلب شحنة جديدة",
+      "url": "/request-shipping",
+      "icons": [{ "src": "/images/logo.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "دخول أصحاب الطلبات",
+      "short_name": "المشتركين",
+      "description": "تسجيل دخول أصحاب الطلبات",
+      "url": "/subscriber-login",
+      "icons": [{ "src": "/images/logo.jpg", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

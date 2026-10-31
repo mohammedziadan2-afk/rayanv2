@@ -2,9 +2,8 @@
 
 import { ExpensesList } from "@/components/expenses-list"
 import Image from "next/image"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, Receipt } from "lucide-react"
+import { Receipt } from "lucide-react"
+import { AdminFooter } from "@/components/admin-footer"
 
 export default function ExpensesPage() {
   return (
@@ -23,20 +22,11 @@ export default function ExpensesPage() {
                 <p className="text-sm text-muted-foreground font-semibold mt-1">إدارة المصروفات والمشتريات اليومية</p>
               </div>
             </div>
-            <Link href="/">
-              <Button
-                variant="outline"
-                className="gap-2 glass-effect hover:shadow-glow-accent transition-all duration-300 bg-transparent"
-              >
-                <ArrowRight className="w-4 h-4" />
-                العودة للرئيسية
-              </Button>
-            </Link>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-10">
+      <main className="container mx-auto px-4 py-10 pb-24">
         <div className="space-y-8">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-4 rounded-2xl gradient-accent shadow-glow-accent">
@@ -50,6 +40,8 @@ export default function ExpensesPage() {
           <ExpensesList />
         </div>
       </main>
+
+      <AdminFooter backUrl="/admin" backLabel="الإدارة" />
     </div>
   )
 }

@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { createBrowserClient } from "@supabase/ssr"
+import { createClient } from "@/lib/supabase/client"
+import { updateWarehouseItem } from "@/app/actions/warehouse"
 
 interface WarehouseItem {
   id: string
@@ -38,23 +39,22 @@ interface Shipment {
 export function EditWarehouseItemDialog({ open, onOpenChange, onItemUpdated, item }: EditWarehouseItemDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [shipments, setShipments] = useState<Shipment[]>([])
+  const [csrfToken, setCsrfToken] = useState<string>("")
   const [formData, setFormData] = useState({
     shipment_name: "",
     sender_name: "",
     shipment_type: "",
-    warehouse_quantity: "",
-    delivered_quantity: "",
+    add_received_quantity: "0",
+    add_delivered_quantity: "0",
     tracking_number: "",
   })
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
+  const supabase = createClient()
 
   useEffect(() => {
     if (open) {
       fetchShipments()
+      fetchCsrfToken()
     }
   }, [open])
 
@@ -84,14 +84,26 @@ export function EditWarehouseItemDialog({ open, onOpenChange, onItemUpdated, ite
     }
   }
 
+  const fetchCsrfToken = async () => {
+    try {
+      const response = await fetch("/api/csrf-token")
+      const data = await response.json()
+      if (data.token) {
+        setCsrfToken(data.token)
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching CSRF token:", error)
+    }
+  }
+
   useEffect(() => {
     if (item) {
       setFormData({
         shipment_name: item.shipment_name,
         sender_name: item.sender_name,
         shipment_type: item.shipment_type,
-        warehouse_quantity: item.warehouse_quantity.toString(),
-        delivered_quantity: item.delivered_quantity.toString(),
+        add_received_quantity: "0",
+        add_delivered_quantity: "0",
         tracking_number: item.tracking_number || "",
       })
     }
@@ -104,26 +116,35 @@ export function EditWarehouseItemDialog({ open, onOpenChange, onItemUpdated, ite
     setIsLoading(true)
 
     try {
-      const { error } = await supabase
-        .from("warehouse_inventory")
-        .update({
+      const addedReceivedQty = Number.parseFloat(formData.add_received_quantity || "0")
+      const addedDeliveredQty = Number.parseFloat(formData.add_delivered_quantity || "0")
+
+      const newReceivedQty = item.warehouse_quantity + addedReceivedQty
+      const newDeliveredQty = item.delivered_quantity + addedDeliveredQty
+
+      const result = await updateWarehouseItem(
+        item.id,
+        {
           shipment_name: formData.shipment_name,
           sender_name: formData.sender_name,
           shipment_type: formData.shipment_type,
-          warehouse_quantity: Number.parseFloat(formData.warehouse_quantity),
-          delivered_quantity: Number.parseFloat(formData.delivered_quantity || "0"),
+          warehouse_quantity: newReceivedQty,
+          delivered_quantity: newDeliveredQty,
           tracking_number: formData.tracking_number || null,
-        })
-        .eq("id", item.id)
+        },
+        csrfToken,
+      )
 
-      if (error) throw error
+      if (!result.success) {
+        throw new Error(result.error || "فشل التحديث")
+      }
 
       toast.success("تم تحديث الشحنة بنجاح")
       onOpenChange(false)
       onItemUpdated()
-    } catch (error) {
-      console.error("Error updating warehouse item:", error)
-      toast.error("حدث خطأ أثناء تحديث الشحنة")
+    } catch (error: any) {
+      console.error("[v0] Error updating warehouse item:", error)
+      toast.error(error.message || "حدث خطأ أثناء تحديث الشحنة")
     } finally {
       setIsLoading(false)
     }
@@ -140,9 +161,26 @@ export function EditWarehouseItemDialog({ open, onOpenChange, onItemUpdated, ite
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] glass-effect">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">تعديل بيانات الشحنة</DialogTitle>
+          <DialogTitle className="text-xl font-bold">تعديل بيانات الصنف</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {item && (
+            <div className="bg-muted/50 p-3 rounded-lg space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">الكمية المستلمة الحالية:</span>
+                <span className="font-semibold">{item.warehouse_quantity}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">الكمية المسلمة الحالية:</span>
+                <span className="font-semibold">{item.delivered_quantity}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">الكمية المتبقية:</span>
+                <span className="font-semibold">{item.warehouse_quantity - item.delivered_quantity}</span>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="edit_tracking_number">ربط بشحنة موجودة (اختياري)</Label>
             <Select
@@ -169,74 +207,67 @@ export function EditWarehouseItemDialog({ open, onOpenChange, onItemUpdated, ite
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit_shipment_name">اسم الشحنة</Label>
-            <Input
-              id="edit_shipment_name"
-              value={formData.shipment_name}
-              onChange={(e) => setFormData({ ...formData, shipment_name: e.target.value })}
-              placeholder="أدخل اسم الشحنة"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit_sender_name">اسم المرسل</Label>
+            <Label htmlFor="edit_sender_name">اسم الصنف</Label>
             <Input
               id="edit_sender_name"
               value={formData.sender_name}
               onChange={(e) => setFormData({ ...formData, sender_name: e.target.value })}
-              placeholder="أدخل اسم المرسل"
+              placeholder="أدخل اسم الصنف"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit_shipment_type">نوع الشحنة</Label>
+            <Label htmlFor="edit_shipment_type">طبيعة الصنف</Label>
             <Select
               value={formData.shipment_type}
               onValueChange={(value) => setFormData({ ...formData, shipment_type: value })}
               required
             >
               <SelectTrigger>
-                <SelectValue placeholder="اختر نوع الشحنة" />
+                <SelectValue placeholder="اختر طبيعة الصنف" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="طرود">طرود</SelectItem>
-                <SelectItem value="مستندات">مستندات</SelectItem>
-                <SelectItem value="بضائع">بضائع</SelectItem>
-                <SelectItem value="أثاث">أثاث</SelectItem>
-                <SelectItem value="إلكترونيات">إلكترونيات</SelectItem>
-                <SelectItem value="أخرى">أخرى</SelectItem>
+                <SelectItem value="وزن">وزن (كجم)</SelectItem>
+                <SelectItem value="لتر">لتر</SelectItem>
+                <SelectItem value="عدد">عدد</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="edit_warehouse_quantity">الكمية بالمستودع</Label>
+              <Label htmlFor="add_received_quantity">إضافة كمية مستلمة</Label>
               <Input
-                id="edit_warehouse_quantity"
+                id="add_received_quantity"
                 type="number"
                 step="0.01"
-                min="0"
-                value={formData.warehouse_quantity}
-                onChange={(e) => setFormData({ ...formData, warehouse_quantity: e.target.value })}
+                value={formData.add_received_quantity}
+                onChange={(e) => setFormData({ ...formData, add_received_quantity: e.target.value })}
                 placeholder="0"
-                required
               />
+              {item && Number.parseFloat(formData.add_received_quantity || "0") !== 0 && (
+                <p className="text-xs text-muted-foreground">
+                  الإجمالي الجديد: {item.warehouse_quantity + Number.parseFloat(formData.add_received_quantity || "0")}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit_delivered_quantity">الكمية المسلمة</Label>
+              <Label htmlFor="add_delivered_quantity">إضافة كمية مسلمة</Label>
               <Input
-                id="edit_delivered_quantity"
+                id="add_delivered_quantity"
                 type="number"
                 step="0.01"
-                min="0"
-                value={formData.delivered_quantity}
-                onChange={(e) => setFormData({ ...formData, delivered_quantity: e.target.value })}
+                value={formData.add_delivered_quantity}
+                onChange={(e) => setFormData({ ...formData, add_delivered_quantity: e.target.value })}
                 placeholder="0"
               />
+              {item && Number.parseFloat(formData.add_delivered_quantity || "0") !== 0 && (
+                <p className="text-xs text-muted-foreground">
+                  الإجمالي الجديد: {item.delivered_quantity + Number.parseFloat(formData.add_delivered_quantity || "0")}
+                </p>
+              )}
             </div>
           </div>
 
@@ -245,7 +276,7 @@ export function EditWarehouseItemDialog({ open, onOpenChange, onItemUpdated, ite
               إلغاء
             </Button>
             <Button type="submit" disabled={isLoading} className="gradient-primary">
-              {isLoading ? "جاري التحديث..." : "تحديث"}
+              {isLoading ? "جاري التحديث..." : "حفظ التعديلات"}
             </Button>
           </div>
         </form>

@@ -1,11 +1,3 @@
-import { createBrowserClient as createClient } from "@supabase/ssr"
+import { createClient, createBrowserClient } from "./supabase/client"
 
-let client: ReturnType<typeof createClient> | null = null
-
-export function createBrowserClient() {
-  if (client) return client
-
-  client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-
-  return client
-}
+export { createClient as createSupabaseBrowserClient, createBrowserClient }

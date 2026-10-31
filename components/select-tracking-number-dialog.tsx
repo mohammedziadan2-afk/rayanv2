@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Package } from "lucide-react"
-import type { Shipment } from "./shipment-form"
+import { getShipments, type ShipmentData } from "@/app/actions/shipments"
 
 interface SelectTrackingNumberDialogProps {
   open: boolean
@@ -14,8 +14,9 @@ interface SelectTrackingNumberDialogProps {
 }
 
 export function SelectTrackingNumberDialog({ open, onOpenChange, onSelect }: SelectTrackingNumberDialogProps) {
-  const [shipments, setShipments] = useState<Shipment[]>([])
+  const [shipments, setShipments] = useState<ShipmentData[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -23,13 +24,17 @@ export function SelectTrackingNumberDialog({ open, onOpenChange, onSelect }: Sel
     }
   }, [open])
 
-  const loadShipments = () => {
-    const stored = localStorage.getItem("shipments")
-    if (stored) {
-      const allShipments = JSON.parse(stored) as Shipment[]
-      setShipments(allShipments)
-    } else {
-      setShipments([])
+  const loadShipments = async () => {
+    setIsLoading(true)
+    try {
+      const result = await getShipments()
+      if (result.success && result.data) {
+        setShipments(result.data)
+      }
+    } catch (error) {
+      console.error("[v0] Error loading shipments:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -64,7 +69,11 @@ export function SelectTrackingNumberDialog({ open, onOpenChange, onSelect }: Sel
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-2 min-h-[200px] max-h-[400px]">
-          {filteredShipments.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">جاري التحميل...</p>
+            </div>
+          ) : filteredShipments.length === 0 ? (
             <div className="text-center py-12">
               <Package className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground">{searchTerm ? "لا توجد نتائج للبحث" : "لا توجد شحنات متاحة"}</p>
@@ -87,7 +96,7 @@ export function SelectTrackingNumberDialog({ open, onOpenChange, onSelect }: Sel
                       </span>
                       {shipment.amount && (
                         <span className="text-xs font-semibold text-accent-foreground bg-accent px-2 py-1 rounded">
-                          {shipment.amount.toFixed(2)} د.أ
+                          {Number(shipment.amount).toFixed(2)} د.أ
                         </span>
                       )}
                     </div>
