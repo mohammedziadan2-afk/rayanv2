@@ -345,7 +345,7 @@ export default function LandingPage() {
               <div className="checks">
                 {reasons.map((r, i) => (
                   <div key={r.title} className={`ck rv${i % 4 ? ` d${i % 4}` : ""}`}>
-                    <r.icon className="i" />
+                    <div className="ic"><r.icon className="i" /></div>
                     <div>
                       <b>{r.title}</b>
                       <span>{r.text}</span>

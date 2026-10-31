@@ -279,4 +279,57 @@
 
 .rn .thero::before{-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
 @media(max-width:600px){.rn .maplbl{font-size:23px}.rn .maplbl.s{font-size:18px}}
+
+/* ===== أيقونات موحّدة: نفس الحجم والشكل في كل الأقسام ===== */
+.rn .bx .ic,.rn .st .ic,.rn .ctc .ic,.rn .ck .ic{width:50px;height:50px;border-radius:15px;font-size:24px;display:grid;place-items:center;flex:none;margin:0 0 14px;background:linear-gradient(145deg,rgba(227,185,90,.2),rgba(227,185,90,.05));color:var(--gold2);border:1px solid rgba(227,185,90,.25);box-shadow:none}
+.rn .ck .ic{width:44px;height:44px;font-size:22px;margin:0}
+.rn .ck .ic .i{margin:0;font-size:inherit;color:inherit}
+
+/* ===== الجوال: كل قسم في صندوق مدمج بدل الطول الكبير ===== */
+@media(max-width:760px){
+  .rn section{padding-top:52px}
+  .rn .sh{margin-bottom:22px}
+  .rn .sh h2{font-size:26px}
+  .rn .sh p{font-size:14.5px}
+
+  /* الخدمات: شبكة من عمودين */
+  .rn .bento{grid-template-columns:1fr 1fr;gap:10px}
+  .rn .bx{padding:16px;border-radius:20px}
+  .rn .bx .ic{width:42px;height:42px;font-size:21px;border-radius:13px;margin-bottom:10px}
+  .rn .bx h3{font-size:16.5px;margin-bottom:2px}
+  .rn .bx p{font-size:12.5px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .rn .bx.big{grid-column:span 2;grid-row:auto;min-height:190px}
+  .rn .bx.big::after{background:linear-gradient(180deg,rgba(5,11,20,.55),rgba(5,11,20,.96))}
+  .rn .bx.big .in{padding:16px}
+  .rn .bx.big .ic{margin-bottom:8px}
+  .rn .bx.m,.rn .bx.s{grid-column:span 1}
+  .rn .bx.s:last-child{grid-column:span 2}
+  .rn .bx .arrow{margin-top:8px;font-size:13px}
+
+  /* كيف نعمل: صندوق واحد بأربع خطوات في صف */
+  .rn .steps{grid-template-columns:repeat(4,1fr);gap:6px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 6px}
+  .rn .st{padding:0 2px;background:none;border:0;text-align:center}
+  .rn .st::before,.rn .st::after{display:none}
+  .rn .st .ic{width:42px;height:42px;font-size:20px;margin:0 auto 8px}
+  .rn .st h4{font-size:12.5px;line-height:1.35}
+  .rn .st p{display:none}
+
+  /* لماذا نحن: شبكة عمودين */
+  .rn .why{gap:22px}
+  .rn .collage{height:230px}
+  .rn .checks{grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .rn .ck{flex-direction:column;gap:8px;padding:14px;border-radius:18px}
+  .rn .ck:hover{transform:none}
+  .rn .ck b{font-size:15px}
+  .rn .ck span{font-size:12.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* المعرض والبوابة والتواصل */
+  .rn .gal figure{width:190px;height:250px}.rn .gal figure:nth-child(even){margin-top:18px}
+  .rn .cta{padding:24px 20px;border-radius:24px}.rn .cta h3{font-size:22px}
+  .rn .ct{grid-template-columns:1fr 1fr;gap:10px}
+  .rn .ctc{padding:14px;border-radius:18px}
+  .rn .ctc .ic{width:40px;height:40px;font-size:20px;margin-bottom:8px}
+  .rn .ctc b,.rn .ctc button{font-size:13.5px}
+  .rn footer{margin-top:60px}
+}
 }
