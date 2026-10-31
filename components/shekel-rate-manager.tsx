@@ -61,10 +61,10 @@ export function ShekelRateManager() {
         <Button
           size="sm"
           variant="outline"
-          className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/30 hover:border-green-500/50 hover:from-green-500/20 hover:to-green-600/20"
+          className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
         >
-          <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-green-600" />
-          <span className="truncate text-green-700 dark:text-green-400">سعر الشيكل</span>
+          <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+          <span className="truncate text-foreground">سعر الشيكل</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
