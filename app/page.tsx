@@ -17,6 +17,7 @@ import {
   Phone,
   Search,
   ShieldCheck,
+  Sparkles,
   ShoppingBag,
   Star,
   Truck,
@@ -82,18 +83,16 @@ export default function LandingPage() {
             <div>
               <span className="tag">
                 <i className="live" />
-                خدمة شحن بين الأردن وفلسطين
+                خدمة شحن وتوصيل في الاتجاهين
               </span>
               <h1 className="big">
-                شحن بين الأردن
+                شحنتك في أيدٍ أمينة
                 <br />
-                وفلسطين
-                <br />
-                <span className="gold">أسرع وأأمن</span>
+                <span className="gold">بين الأردن وفلسطين</span>
               </h1>
               <p className="lead">
-                ذهابًا وإيابًا: نشحن طرودك وبضائعك من فلسطين إلى الأردن، ومن الأردن إلى فلسطين، بأسعار منافسة وتغليف
-                احترافي وتتبع مباشر لحظة بلحظة.
+                نوفّر لك خدمة شحن وتوصيل متكاملة ذهابًا وإيابًا، بتغليف احترافي وأسعار تنافسية، وتتبّع مباشر
+                يطمئنك على شحنتك من لحظة الاستلام حتى باب المستلم.
               </p>
 
               <form className="cmd" onSubmit={handleTrack}>
@@ -111,18 +110,38 @@ export default function LandingPage() {
                 </button>
               </form>
 
-              <div className="acts">
-                <Link href="/subscriber-login">
-                  <Users className="i" />
-                  أصحاب الطلبات
+              <div className="banners">
+                <Link href="/subscriber-login" className="banner g">
+                  <div className="ic"><Users className="i" /></div>
+                  <div>
+                    <b>مشتركين</b>
+                    <small>سجّل الدخول وتابع طلباتك وشحناتك</small>
+                  </div>
+                  <ArrowLeft className="i go" />
                 </Link>
-                <Link href="/request-shipping">
-                  <Package className="i" />
-                  لنقل شحنة
+                <Link href="/request-shipping" className="banner c">
+                  <div className="ic"><Package className="i" /></div>
+                  <div>
+                    <b>طلب شحن</b>
+                    <small>اطلب نقل شحنتك بخطوات بسيطة</small>
+                  </div>
+                  <ArrowLeft className="i go" />
                 </Link>
-                <span className="news-slot">
-                  <NewsFloatingBubbles triggerClassName="news-btn" />
-                </span>
+                <div className="news-slot">
+                  <NewsFloatingBubbles
+                    triggerClassName="banner v"
+                    triggerContent={
+                      <>
+                        <div className="ic"><Sparkles className="i" /></div>
+                        <div>
+                          <b>أخبار الجسر</b>
+                          <small>آخر الأخبار والتحديثات المهمة</small>
+                        </div>
+                        <ArrowLeft className="i go" />
+                      </>
+                    }
+                  />
+                </div>
               </div>
 
               <div className="proof">

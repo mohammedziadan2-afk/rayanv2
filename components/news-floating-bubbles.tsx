@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState, useRef } from "react"
 import { getActiveNews, type News } from "@/app/actions/news"
 import { Sparkles, X } from "lucide-react"
@@ -29,7 +31,10 @@ const linkifyText = (text: string) => {
   })
 }
 
-export function NewsFloatingBubbles({ triggerClassName }: { triggerClassName?: string } = {}) {
+export function NewsFloatingBubbles({
+  triggerClassName,
+  triggerContent,
+}: { triggerClassName?: string; triggerContent?: React.ReactNode } = {}) {
   const [news, setNews] = useState<News[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showBubbles, setShowBubbles] = useState(false)
@@ -106,7 +111,9 @@ export function NewsFloatingBubbles({ triggerClassName }: { triggerClassName?: s
             "w-full h-16 px-4 rounded-2xl bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-300 cursor-pointer hover:scale-105 flex items-center justify-center"
           }
         >
-          {triggerClassName ? (
+          {triggerContent ? (
+            triggerContent
+          ) : triggerClassName ? (
             <>
               <Sparkles className="w-4 h-4" />
               أخبار الجسر
