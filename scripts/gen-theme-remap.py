@@ -34,10 +34,35 @@ def hexs(rgb):
     return "#%02x%02x%02x" % rgb
 
 
+import os
+import re
+
+# Only emit rules for utility classes that actually appear in the source.
+USED = set()
+for root in ("app", "components"):
+    for dp, _, files in os.walk(root):
+        for f in files:
+            if f.endswith((".tsx", ".ts", ".jsx", ".js")):
+                try:
+                    txt = open(os.path.join(dp, f), encoding="utf-8").read()
+                except Exception:
+                    continue
+                USED.update(re.findall(r"[A-Za-z0-9_:\-/.\[\]%#]+", txt))
+FIRST_CLASS = re.compile(r"^\.((?:\\.|[^\\\s:.,>{])+)")
+
 out = []
 
 
 def rule(sel, decl):
+    m = FIRST_CLASS.match(sel)
+    if m:
+        token = re.sub(r"\\(.)", r"\1", m.group(1))
+        # selectors like .hover\:bg-x:hover -> token "hover:bg-x"
+        if not (token in USED or token.split(":")[-1] in USED and ":" not in token):
+            m2 = re.match(r"^\.((?:\\.|[^\\\s,>{])+?)(?::hover)?(?:>|$|\s)", sel)
+            tok2 = re.sub(r"\\(.)", r"\1", m2.group(1)) if m2 else token
+            if tok2 not in USED:
+                return
     out.append(f"{SCOPE} {sel}{{{decl}}}")
 
 
@@ -74,35 +99,79 @@ for n in NEUTRALS:
 rule(".text-black", "color:#EAF1F6")
 rule(".bg-black\\/5", "background-color:rgba(255,255,255,.04)")
 
-# ---------- hues ----------
-BG = {"50": .10, "100": .16, "200": .24, "300": .34}
-BR = {"100": .25, "200": .35, "300": .45}
-TXT = {"600": .22, "700": .38, "800": .5, "900": .6}
-for h, rgb in HUES.items():
-    r, g, b = rgb
-    for sh, a in BG.items():
+# ---------- hues: collapse decorative colours into two tones ----------
+# cool/decorative hues -> steel blue (+ cyan tint), warm hues -> gold,
+# green and red keep their meaning (success / danger) but only as soft tints
+# and light text; saturated green fills are treated as decorative (steel).
+COOL = ["blue", "sky", "cyan", "indigo", "violet", "purple", "fuchsia", "pink", "teal"]
+WARM = ["amber", "yellow", "orange"]
+GREENS = ["green", "emerald", "lime"]
+REDS = ["red", "rose"]
+CY, GD, GRN, RED = (59, 211, 234), (227, 185, 90), (62, 224, 143), (242, 101, 106)
+TINT = {"50": .08, "100": .13, "200": .20, "300": .30}
+STEEL = {"400": "#2B7FA3", "500": "#1E6C90", "600": "#14698C", "700": "#0F5878",
+         "800": "#0B4A66", "900": "#083A52"}
+STEEL_HOVER = {"400": "#1E6C90", "500": "#14698C", "600": "#0F5878", "700": "#0B4A66",
+               "800": "#083A52", "900": "#06304A"}
+GOLDD = {"400": "#C9972F", "500": "#B58526", "600": "#A87A1E", "700": "#8C6416",
+         "800": "#745210", "900": "#5C410C"}
+GOLDD_HOVER = {"400": "#B58526", "500": "#A87A1E", "600": "#8C6416", "700": "#745210",
+               "800": "#5C410C", "900": "#4a3409"}
+TEXT = {"cool": "#86DDEE", "warm": "#F0CD7E", "green": "#6BE6AA", "red": "#FF8F93"}
+SAT = ["400", "500", "600", "700", "800", "900"]
+ALPHA_OP = {"/5": .05, "/10": .10, "/20": .20, "/30": .30, "/40": .40, "/50": .50, "/80": .80, "/90": .90}
+
+
+def tint_rgb(h):
+    return CY if h in COOL else GD if h in WARM else GRN if h in GREENS else RED
+
+
+def group(h):
+    return "cool" if h in COOL else "warm" if h in WARM else "green" if h in GREENS else "red"
+
+
+for h in COOL + WARM + GREENS + REDS:
+    r, g, b = tint_rgb(h)
+    grp = group(h)
+    # --- soft tints (backgrounds / gradient stops / borders) ---
+    for sh, a in TINT.items():
         for o in OPAC_MIN:
             rule(f".bg-{h}-{sh}{esc(o)}", f"background-color:rgba({r},{g},{b},{a})")
-        for p in ("from", "via", "to"):
-            for o in OPAC_MIN:
-                rule(f".{p}-{h}-{sh}{esc(o)}", f"--tw-gradient-{p}:rgba({r},{g},{b},{a})")
+            for pfx in ("from", "via", "to"):
+                rule(f".{pfx}-{h}-{sh}{esc(o)}", f"--tw-gradient-{pfx}:rgba({r},{g},{b},{a})")
         rule(f".hover\\:bg-{h}-{sh}:hover", f"background-color:rgba({r},{g},{b},{min(a+.06,.4)})")
-    for sh, a in BR.items():
-        rule(f".border-{h}-{sh}", f"border-color:rgba({r},{g},{b},{a})")
-    for sh, t in TXT.items():
-        col = hexs(mix(rgb, t))
-        rule(f".text-{h}-{sh}", f"color:{col}")
-        rule(f".hover\\:text-{h}-{sh}:hover", f"color:{col}")
-
-
-# ---------- dark neutral gradient stops (gradient headings). Saturated hues are
-# left alone on purpose: they are also used for solid button gradients. ----------
-GN = {"400": "#7d93a3", "500": "#8EA3B2", "600": "#A9BCC9", "700": "#C4D3DD",
-      "800": "#DCE7EE", "900": "#EAF1F6", "950": "#F4F8FB"}
-for n in NEUTRALS:
-    for sh, col in GN.items():
+    for sh in ("100", "200", "300", "400", "500", "600"):
+        for o in ["", "/10", "/20", "/30", "/40", "/50", "/60"]:
+            al = .30 if sh in ("100", "200", "300") else .35
+            if o:
+                al = int(o[1:]) / 100 * (1.0 if int(o[1:]) >= 40 else 1.2)
+            rule(f".border-{h}-{sh}{esc(o)}", f"border-color:rgba({r},{g},{b},{min(al,.5):.2f})")
+    # --- text ---
+    shades = ("300", "400", "500", "600", "700", "800", "900") if grp in ("cool", "warm") else ("500", "600", "700", "800", "900")
+    for sh in shades:
+        rule(f".text-{h}-{sh}", f"color:{TEXT[grp]}")
+        rule(f".hover\\:text-{h}-{sh}:hover", f"color:{TEXT[grp]}")
+    # --- saturated fills ---
+    if grp == "red":
+        continue  # destructive actions keep their red
+    scale, hov = (GOLDD, GOLDD_HOVER) if grp == "warm" else (STEEL, STEEL_HOVER)
+    for sh in SAT:
+        rule(f".bg-{h}-{sh}", f"background-color:{scale[sh]}")
+        rule(f".hover\\:bg-{h}-{sh}:hover", f"background-color:{hov[sh]}")
         for pfx in ("from", "via", "to"):
-            rule(f".{pfx}-{n}-{sh}", f"--tw-gradient-{pfx}:{col}")
+            rule(f".{pfx}-{h}-{sh}", f"--tw-gradient-{pfx}:{scale[sh]}")
+            rule(f".hover\\:{pfx}-{h}-{sh}:hover", f"--tw-gradient-{pfx}:{hov[sh]}")
+        for o, al in ALPHA_OP.items():
+            r2, g2, b2 = GD if grp == "warm" else CY
+            rule(f".bg-{h}-{sh}{esc(o)}", f"background-color:rgba({r2},{g2},{b2},{al})")
+            for pfx in ("from", "via", "to"):
+                rule(f".{pfx}-{h}-{sh}{esc(o)}", f"--tw-gradient-{pfx}:rgba({r2},{g2},{b2},{al})")
+
+# ---------- buttons whose own background replaces the gold primary ----------
+# primary-foreground is dark now (text on gold). Buttons that override the
+# background (translucent / gradient) expect the old white label.
+out.append(f'{SCOPE} [data-slot="button"].text-primary-foreground:not(.bg-primary){{color:#fff}}')
+out.append(f'{SCOPE} [data-slot="button"].text-primary-foreground[class*="from-"]{{color:#fff}}')
 
 css = """/* GENERATED by scripts/gen-theme-remap.py - do not edit by hand.
  * Maps hard-coded Tailwind light-theme colours to the dark navy/gold theme.

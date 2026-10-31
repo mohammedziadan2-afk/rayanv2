@@ -108,8 +108,8 @@ export function LatestSessionsButton() {
         variant="outline"
         className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3 md:px-4 py-2 h-auto bg-transparent"
       >
-        <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-600" />
-        <span className="truncate text-amber-700 dark:text-amber-400">ملخص آخر جلسات</span>
+        <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+        <span className="truncate text-foreground">ملخص آخر جلسات</span>
       </Button>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

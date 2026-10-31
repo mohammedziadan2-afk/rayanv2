@@ -135,10 +135,10 @@ export default function AdminPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow-accent transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/30 hover:border-purple-500/50 hover:from-purple-500/20 hover:to-purple-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow-accent transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-purple-600" />
-                <span className="truncate text-purple-700 dark:text-purple-400">التقارير</span>
+                <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">التقارير</span>
               </Button>
             </Link>
 
@@ -146,10 +146,10 @@ export default function AdminPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow-accent transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 relative bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/30 hover:border-blue-500/50 hover:from-blue-500/20 hover:to-blue-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow-accent transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 relative bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-blue-600" />
-                <span className="truncate text-blue-700 dark:text-blue-400">طلبات الشحن</span>
+                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">طلبات الشحن</span>
                 {unreadRequestsCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg animate-pulse">
                     {unreadRequestsCount}
@@ -161,40 +161,40 @@ export default function AdminPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 border-emerald-500/30 hover:border-emerald-500/50 hover:from-emerald-500/20 hover:to-emerald-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-emerald-600" />
-                <span className="truncate text-emerald-700 dark:text-emerald-400">المالية</span>
+                <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">المالية</span>
               </Button>
             </Link>
             <Link href="/warehouse" className="w-full">
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-amber-500/10 to-amber-600/10 border-amber-500/30 hover:border-amber-500/50 hover:from-amber-500/20 hover:to-amber-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <Warehouse className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-amber-600" />
-                <span className="truncate text-amber-700 dark:text-amber-400">المستودع</span>
+                <Warehouse className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">المستودع</span>
               </Button>
             </Link>
             <Link href="/debts" className="w-full">
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-rose-500/10 to-rose-600/10 border-rose-500/30 hover:border-rose-500/50 hover:from-rose-500/20 hover:to-rose-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-rose-600" />
-                <span className="truncate text-rose-700 dark:text-rose-400">الذمم</span>
+                <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">الذمم</span>
               </Button>
             </Link>
             <Link href="/trips-table" className="w-full">
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 border-cyan-500/30 hover:border-cyan-500/50 hover:from-cyan-500/20 hover:to-cyan-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <TableIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-cyan-600" />
-                <span className="truncate text-cyan-700 dark:text-cyan-400">جدول الرحلات</span>
+                <TableIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">جدول الرحلات</span>
               </Button>
             </Link>
             
@@ -202,10 +202,10 @@ export default function AdminPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 relative bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border-yellow-500/30 hover:border-yellow-500/50 hover:from-yellow-500/20 hover:to-yellow-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 relative bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-yellow-600" />
-                <span className="truncate text-yellow-700 dark:text-yellow-400">التنبيهات</span>
+                <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">التنبيهات</span>
                 {notificationCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
                     {notificationCount}
@@ -217,50 +217,50 @@ export default function AdminPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-indigo-500/10 to-indigo-600/10 border-indigo-500/30 hover:border-indigo-500/50 hover:from-indigo-500/20 hover:to-indigo-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <Receipt className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-indigo-600" />
-                <span className="truncate text-indigo-700 dark:text-indigo-400">الفواتير</span>
+                <Receipt className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">الفواتير</span>
               </Button>
             </Link>
             <Link href="/news" className="w-full">
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-orange-500/10 to-orange-600/10 border-orange-500/30 hover:border-orange-500/50 hover:from-orange-500/20 hover:to-orange-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <Newspaper className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-orange-600" />
-                <span className="truncate text-orange-700 dark:text-orange-400">آخر الأخبار</span>
+                <Newspaper className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">آخر الأخبار</span>
               </Button>
             </Link>
             <Link href="/drivers" className="w-full">
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-teal-500/10 to-teal-600/10 border-teal-500/30 hover:border-teal-500/50 hover:from-teal-500/20 hover:to-teal-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-teal-600" />
-                <span className="truncate text-teal-700 dark:text-teal-400">السائقين</span>
+                <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">السائقين</span>
               </Button>
             </Link>
             <Link href="/admin/current-shipments" className="w-full">
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-pink-500/10 to-pink-600/10 border-pink-500/30 hover:border-pink-500/50 hover:from-pink-500/20 hover:to-pink-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-pink-600" />
-                <span className="truncate text-pink-700 dark:text-pink-400">الشحنات الحالية</span>
+                <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">الشحنات الحالية</span>
               </Button>
             </Link>
             <Link href="/admin/collection-summaries" className="w-full">
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-gradient-to-br from-violet-500/10 to-violet-600/10 border-violet-500/30 hover:border-violet-500/50 hover:from-violet-500/20 hover:to-violet-600/20"
+                className="gap-1.5 sm:gap-2 glass-effect hover:shadow-glow transition-all duration-300 w-full text-xs sm:text-sm h-auto py-3 sm:py-4 bg-card border-border hover:border-primary/50 hover:bg-primary/5"
               >
-                <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-violet-600" />
-                <span className="truncate text-violet-700 dark:text-violet-400">ملخص التحصيلات</span>
+                <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-primary" />
+                <span className="truncate text-foreground">ملخص التحصيلات</span>
               </Button>
             </Link>
             <ShekelRateManager />
@@ -269,7 +269,7 @@ export default function AdminPage() {
 
           {/* Gold Analysis Button */}
           <Link href="/admin/gold-analysis" className="block">
-            <div className="relative w-full p-4 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 hover:from-yellow-600 hover:via-amber-600 hover:to-yellow-700 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <div className="relative w-full p-4 rounded-xl bg-gradient-to-r from-[#14698C] to-[#0B4A66] hover:from-[#1a7aa1] hover:to-[#0f5878] border border-white/15 transition-all duration-300 shadow-lg hover:shadow-xl">
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-white/20 rounded-xl">
@@ -287,7 +287,7 @@ export default function AdminPage() {
 
           {/* Website Stats Button */}
           <Link href="/admin/website-stats" className="block">
-            <div className="relative w-full p-4 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <div className="relative w-full p-4 rounded-xl bg-gradient-to-r from-[#14698C] to-[#0B4A66] hover:from-[#1a7aa1] hover:to-[#0f5878] border border-white/15 transition-all duration-300 shadow-lg hover:shadow-xl">
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-white/20 rounded-xl">
@@ -307,19 +307,19 @@ export default function AdminPage() {
             <Link href="/shipments-tracking" className="block">
               <div className="relative inline-block w-full sm:w-auto">
                 {pendingDriverTasks > 0 && (
-                  <div className="absolute -top-3 -left-2 z-10 flex items-center gap-1 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+                  <div className="absolute -top-3 -left-2 z-10 flex items-center gap-1 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
                     <Truck className="w-3.5 h-3.5" />
                     <span>{pendingDriverTasks} شحنة مع السائقين</span>
                   </div>
                 )}
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto gap-3 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-700 hover:from-orange-600 hover:via-orange-700 hover:to-orange-800 text-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-orange-400/50 text-base sm:text-lg py-6 sm:py-7 px-8 sm:px-12 relative"
+                  className="w-full sm:w-auto gap-3 bg-card border border-primary/30 hover:border-primary/60 hover:bg-primary/5 text-foreground shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-orange-400/50 text-base sm:text-lg py-6 sm:py-7 px-8 sm:px-12 relative"
                 >
-                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                   <span className="font-bold">متابعة الشحنات</span>
                   {pendingShipmentsCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-bold rounded-full min-w-6 h-6 flex items-center justify-center shadow-lg animate-pulse px-1.5">
+                    <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full min-w-6 h-6 flex items-center justify-center shadow-lg animate-pulse px-1.5">
                       {pendingShipmentsCount}
                     </span>
                   )}
@@ -330,7 +330,7 @@ export default function AdminPage() {
           
           {/* Subscribers Card - Like Gold Market */}
           <Link href="/admin/subscribers" className="block">
-            <div className="relative w-full p-4 rounded-xl bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-600 hover:from-teal-600 hover:via-cyan-600 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <div className="relative w-full p-4 rounded-xl bg-gradient-to-r from-[#14698C] to-[#0B4A66] hover:from-[#1a7aa1] hover:to-[#0f5878] border border-white/15 transition-all duration-300 shadow-lg hover:shadow-xl">
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-3">
                   <div className="p-3 bg-white/20 rounded-xl">
