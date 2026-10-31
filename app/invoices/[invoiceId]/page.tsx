@@ -37,7 +37,7 @@ export default function InvoicePage({ params }: InvoicePageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="paper min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-500">جاري التحميل...</p>
@@ -124,7 +124,7 @@ export default function InvoicePage({ params }: InvoicePageProps) {
     : remainingAmount + deposit
 
   return (
-    <div className="min-h-screen bg-gray-200 print:bg-white print:min-h-0">
+    <div className="paper min-h-screen bg-gray-200 print:bg-white print:min-h-0">
       <style>{`
         @media print {
           @page { size: A4 portrait; margin: 6mm; }

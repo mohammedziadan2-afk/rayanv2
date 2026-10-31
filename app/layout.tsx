@@ -8,6 +8,7 @@ import { Toaster } from "sonner"
 import { AuthProvider } from "@/components/auth-provider"
 import { VisitorTracker } from "@/components/visitor-tracker"
 import "./globals.css"
+import "./theme-remap.css"
 
 const cairo = Cairo({
   subsets: ["arabic"],
@@ -95,19 +96,19 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="الريان للشحن" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#0f4c81" />
+        <meta name="theme-color" content="#050b14" />
         <link rel="apple-touch-icon" href="/images/logo.jpg" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="canonical" href="https://yourwebsite.com" />
       </head>
       <body
-        className={`font-sans ${cairo.variable} antialiased bg-gradient-to-br from-blue-50/50 via-white to-purple-50/30 overflow-x-hidden`}
+        className={`font-sans ${cairo.variable} antialiased bg-background text-foreground overflow-x-hidden`}
       >
         <AuthProvider>
           <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
         </AuthProvider>
         <VisitorTracker />
-        <Toaster position="top-center" richColors />
+        <Toaster position="top-center" richColors theme="dark" />
         {/* <Analytics /> */}
         <Script
           id="json-ld"

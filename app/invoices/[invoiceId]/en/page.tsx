@@ -37,7 +37,7 @@ export default function InvoiceEnglishPage({ params }: InvoicePageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="paper min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-500">Loading...</p>
@@ -139,7 +139,7 @@ export default function InvoiceEnglishPage({ params }: InvoicePageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-200 print:bg-white print:min-h-0">
+    <div className="paper min-h-screen bg-gray-200 print:bg-white print:min-h-0">
       {/* Header Controls */}
       <div className="print:hidden sticky top-0 z-50 bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-3">
