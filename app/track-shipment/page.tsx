@@ -6,8 +6,9 @@ import { Search } from "lucide-react"
 import { getShipmentTrackingInfo, type ShipmentTrackingInfo } from "@/app/actions/tracking"
 import { SiteNav } from "@/components/rayan/site-nav"
 import { SiteFooter } from "@/components/rayan/site-footer"
-import { TrackingResults } from "@/components/rayan/tracking-results"
+import { TrackingView } from "@/components/rayan/tracking-view"
 import "../rayan-design.css"
+import "../track.css"
 
 export default function TrackShipmentPage() {
   const [trackingNumber, setTrackingNumber] = useState("")
@@ -71,26 +72,29 @@ export default function TrackShipmentPage() {
   }
 
   return (
-    <div className="rn">
+    <div className="rn t-page">
       <SiteNav active="tracking" />
 
       <main>
-        <section className="thero">
-          <div className="wrap">
-            <span className="tag">
-              <Search className="i" />
+        <section className="t-hero">
+          <div className="t-in">
+            <span className="t-eyebrow t-rv" style={{ "--i": 0 } as React.CSSProperties}>
               تتبع الشحنات
             </span>
-            <h1>
+            <h1 className="t-rv" style={{ "--i": 1 } as React.CSSProperties}>
               أين وصلت <span className="gold">شحنتك؟</span>
             </h1>
-            <p>أدخل رقم التتبع لمعرفة موقع شحنتك ومراحل التوصيل لحظة بلحظة.</p>
+            <p className="t-rv" style={{ "--i": 2 } as React.CSSProperties}>
+              أدخل رقم التتبع لمعرفة موقع شحنتك ومراحل التوصيل لحظة بلحظة.
+            </p>
 
-            <form className="cmd" onSubmit={handleSubmit}>
-              <div className="f">
+            <form className="t-search t-rv" style={{ "--i": 3 } as React.CSSProperties} onSubmit={handleSubmit}>
+              <div className="t-f">
                 <Search className="i" />
                 <input
                   type="text"
+                  className="ltr"
+                  dir="ltr"
                   placeholder="أدخل رقم التتبع..."
                   value={trackingNumber}
                   onChange={(e) => setTrackingNumber(e.target.value)}
@@ -98,33 +102,27 @@ export default function TrackShipmentPage() {
                   aria-label="رقم التتبع"
                 />
               </div>
-              <button className="btn btn-gold" type="submit" disabled={loading || !trackingNumber.trim()}>
-                {loading ? (
-                  <>
-                    <span className="spin" />
-                    جاري البحث...
-                  </>
-                ) : (
-                  "تتبع"
-                )}
+              <button
+                className={`btn btn-gold t-go${loading ? " busy" : ""}`}
+                type="submit"
+                disabled={loading || !trackingNumber.trim()}
+              >
+                <span className="t-sp" />
+                <span className="t-lb">تتبع</span>
               </button>
             </form>
 
             {notFound && (
-              <div className="nf" role="alert">
+              <div className="t-nf" role="alert">
                 لم يتم العثور على الشحنة. تأكد من رقم التتبع وحاول مرة أخرى.
               </div>
             )}
           </div>
         </section>
 
-        {trackingInfo && (
-          <div ref={resultsRef} style={{ scrollMarginTop: 90 }}>
-            <TrackingResults info={trackingInfo} runKey={runKey} />
-          </div>
-        )}
-
-        <div style={{ height: 60 }} />
+        <div ref={resultsRef} style={{ scrollMarginTop: 90 }}>
+          <TrackingView key={runKey} info={trackingInfo} scanning={loading} />
+        </div>
       </main>
 
       <SiteFooter />
