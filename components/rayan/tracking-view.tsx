@@ -9,13 +9,27 @@ import { WhatsAppIcon } from "@/components/rayan/icons"
 
 const WHATSAPP_URL = "https://wa.me/message/NBC72SUIIZ5PH1"
 
-// Zoom window on the West Bank / Amman area so the route is large and readable.
-const Z = 2.81
-const X0 = 62
-const Y0 = 88
 const cities = SHIPPING_MAP.cities as unknown as Record<string, MapCity>
-const S = (p: { x: number; y: number }) => ({ x: (p.x - X0) * Z, y: (p.y - Y0) * Z })
-const HUB = S(SHIPPING_MAP.hub)
+const HUB_W = SHIPPING_MAP.hub
+const MW = SHIPPING_MAP.width
+const MH = SHIPPING_MAP.height
+// where the country captions sit on the map (world coordinates)
+const JOR_CAPTION = { x: 229, y: 255 }
+const PAL_CAPTION = { x: 94, y: 205 }
+
+// Zoom window that fits the route (plus padding) so any city pair stays in view.
+function viewWindow(pts: { x: number; y: number }[]) {
+  const xs = pts.map((p) => p.x)
+  const ys = pts.map((p) => p.y)
+  const pad = 45
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const w = Math.max(maxX - minX + pad * 2, ((maxY - minY + pad * 2) * MW) / MH, 200)
+  const h = (w * MH) / MW
+  return { x0: (minX + maxX) / 2 - w / 2, y0: (minY + maxY) / 2 - h / 2, z: MW / w }
+}
 
 const STAGE_ICONS = [Box, Package, Truck, Navigation, PackageCheck]
 // where the truck rests on the route for each stage (0 = pickup, 1 = delivered)
@@ -24,20 +38,34 @@ const STAGE_T = [0, 0.25, 0.5, 0.8, 1]
 const isJordan = (s?: string) => !!s && /(الأردن|اردن|jordan)/i.test(s)
 const isPalestine = (s?: string) => !!s && /(فلسطين|palestine)/i.test(s)
 
+const norm = (v: string) =>
+  v
+    .replace(/[\u064B-\u0652\u0640]/g, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .trim()
+
 function matchCity(text: string | undefined, side: "p" | "j") {
-  const t = (text || "").trim()
+  const t = norm(text || "")
   if (!t) return null
-  return Object.keys(cities).find((n) => cities[n].side === side && (t.includes(n) || n.includes(t))) || null
+  return (
+    Object.keys(cities).find((n) => {
+      if (cities[n].side !== side) return false
+      const c = norm(n)
+      return t.includes(c) || c.includes(t)
+    }) || null
+  )
 }
 
-function routeD(a: { x: number; y: number }, b: { x: number; y: number }) {
-  const mx = (a.x + HUB.x) / 2
-  const my = (a.y + HUB.y) / 2
-  const dx = HUB.x - a.x
-  const dy = HUB.y - a.y
+function routeD(a: { x: number; y: number }, b: { x: number; y: number }, hub: { x: number; y: number }) {
+  const mx = (a.x + hub.x) / 2
+  const my = (a.y + hub.y) / 2
+  const dx = hub.x - a.x
+  const dy = hub.y - a.y
   const len = Math.hypot(dx, dy) || 1
   const bulge = Math.min(60, len * 0.3)
-  return `M${a.x},${a.y} Q${mx + (-dy / len) * bulge},${my + (dx / len) * bulge} ${HUB.x},${HUB.y} T${b.x},${b.y}`
+  return `M${a.x},${a.y} Q${mx + (-dy / len) * bulge},${my + (dx / len) * bulge} ${hub.x},${hub.y} T${b.x},${b.y}`
 }
 
 const ease = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2)
@@ -45,7 +73,7 @@ const ease = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 
 const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
 const fmtTime = (d: string) => new Date(d).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-const when = (d?: string) => (d ? `${fmtDate(d)} ${fmtTime(d)}` : "")
+const when = (d?: string | null) => (d ? `${fmtDate(d)} ${fmtTime(d)}` : "")
 
 function Label({ x, y, text }: { x: number; y: number; text: string }) {
   const w = text.length * 9 + 24
@@ -77,9 +105,14 @@ export function TrackingView({ info, scanning }: { info: ShipmentTrackingInfo | 
   const jorCity = (info && dir < 0 ? matchCity(info.senderCity || info.senderCountry, "j") : null) || "عمّان"
   const palKnown = !!info && dir > 0 && !!matchCity(info.senderCity || info.senderCountry, "p")
   const jorKnown = !!info && dir < 0 && !!matchCity(info.senderCity || info.senderCountry, "j")
+  const win = useMemo(() => viewWindow([cities[palCity], cities[jorCity], HUB_W]), [palCity, jorCity])
+  const S = (p: { x: number; y: number }) => ({ x: (p.x - win.x0) * win.z, y: (p.y - win.y0) * win.z })
   const A = S(cities[palCity])
   const B = S(cities[jorCity])
-  const d = useMemo(() => routeD(A, B), [A.x, A.y, B.x, B.y]) // eslint-disable-line react-hooks/exhaustive-deps
+  const HUB = S(HUB_W)
+  const jorCap = S(JOR_CAPTION)
+  const palCap = S(PAL_CAPTION)
+  const d = useMemo(() => routeD(A, B, HUB), [A.x, A.y, B.x, B.y, HUB.x, HUB.y]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fromText = info
     ? [info.senderCity, info.senderCountry].filter(Boolean).join("، ") || (dir > 0 ? "فلسطين" : "الأردن")
@@ -234,14 +267,14 @@ export function TrackingView({ info, scanning }: { info: ShipmentTrackingInfo | 
                 </filter>
               </defs>
               <rect width={SHIPPING_MAP.width} height={SHIPPING_MAP.height} fill="url(#t-dots)" mask="url(#t-mm)" />
-              <g transform={`scale(${Z}) translate(${-X0} ${-Y0})`}>
+              <g transform={`scale(${win.z}) translate(${-win.x0} ${-win.y0})`}>
                 <path className="t-jor" vectorEffect="non-scaling-stroke" d={SHIPPING_MAP.jordan} />
                 <path className="t-pal" vectorEffect="non-scaling-stroke" d={SHIPPING_MAP.palestine} />
               </g>
-              <text className="t-cname j" x={470} y={470} textAnchor="middle">
+              <text className="t-cname j" x={jorCap.x} y={jorCap.y} textAnchor="middle">
                 الأردن
               </text>
-              <text className="t-cname p" x={92} y={330} textAnchor="middle">
+              <text className="t-cname p" x={palCap.x} y={palCap.y} textAnchor="middle">
                 فلسطين
               </text>
               <path className="t-rbg" d={d} />
