@@ -4,7 +4,6 @@ import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { Search } from "lucide-react"
 import { getShipmentTrackingInfo, type ShipmentTrackingInfo } from "@/app/actions/tracking"
-import { TrackingNewsBanner } from "@/components/tracking-news-banner"
 import { SiteNav } from "@/components/rayan/site-nav"
 import { SiteFooter } from "@/components/rayan/site-footer"
 import { TrackingResults } from "@/components/rayan/tracking-results"
@@ -118,9 +117,6 @@ export default function TrackShipmentPage() {
             )}
           </div>
         </section>
-
-        {/* الأخبار المهمة (تُدار من صفحة الأخبار في لوحة التحكم) */}
-        <TrackingNewsBanner />
 
         {trackingInfo && (
           <div ref={resultsRef} style={{ scrollMarginTop: 90 }}>

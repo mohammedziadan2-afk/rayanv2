@@ -8,7 +8,6 @@ import { Search, Package, User, Phone, Calendar, FileText } from "lucide-react"
 import type { Shipment } from "@/components/shipment-form"
 import Image from "next/image"
 import { getShipmentByTrackingNumber } from "@/app/actions/shipments"
-import { TrackingNewsBanner } from "@/components/tracking-news-banner"
 
 export default function CustomerTrackPage() {
   const [trackingNumber, setTrackingNumber] = useState("")
@@ -55,9 +54,6 @@ export default function CustomerTrackPage() {
           </div>
         </div>
       </header>
-
-      {/* Important news ticker (managed from the news admin page) */}
-      <TrackingNewsBanner />
 
       <main className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
