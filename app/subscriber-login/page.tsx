@@ -59,7 +59,7 @@ export default function SubscriberLoginPage() {
         <Card className="shadow-xl border-0">
           <CardHeader className="text-center pb-2">
             <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <Image src="/logo.jpg" alt="Logo" width={60} height={60} className="rounded-xl" />
+              <Image src="/images/logo.jpg" alt="شعار الريان" width={60} height={60} className="rounded-xl" />
             </div>
             <CardTitle className="text-2xl">تسجيل دخول المشترك</CardTitle>
             <p className="text-muted-foreground">أدخل بياناتك لمتابعة شحناتك</p>

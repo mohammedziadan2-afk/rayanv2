@@ -210,7 +210,7 @@ export default function SubscribersPage() {
               </Button>
             </Link>
             <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg">
-              <Image src="/logo.jpg" alt="Logo" width={40} height={40} className="rounded-lg" />
+              <Image src="/images/logo.jpg" alt="شعار الريان" width={40} height={40} className="rounded-lg" />
             </div>
             <div>
               <h1 className="text-xl font-bold">أصحاب الطلبات</h1>
