@@ -6,9 +6,10 @@ import type { Metadata } from "next"
 export async function generateMetadata({
   params,
 }: {
-  params: { driverId: string }
+  params: Promise<{ driverId: string }>
 }): Promise<Metadata> {
-  const driver = await getDriverById(params.driverId)
+  const { driverId } = await params
+  const driver = await getDriverById(driverId)
 
   if (!driver) {
     return {
@@ -48,10 +49,12 @@ export default async function DriverViewPage({
   params,
   searchParams,
 }: {
-  params: { driverId: string }
-  searchParams: { sessionId?: string }
+  params: Promise<{ driverId: string }>
+  searchParams: Promise<{ sessionId?: string }>
 }) {
-  const driver = await getDriverById(params.driverId)
+  const { driverId } = await params
+  const { sessionId } = await searchParams
+  const driver = await getDriverById(driverId)
 
   if (!driver) {
     notFound()
@@ -60,19 +63,19 @@ export default async function DriverViewPage({
   let session = null
   let tasks: any[] = []
 
-  if (searchParams.sessionId) {
-    session = await getSessionById(searchParams.sessionId)
-    const allTasks = await getDriverTasks(params.driverId)
+  if (sessionId) {
+    session = await getSessionById(sessionId)
+    const allTasks = await getDriverTasks(driverId)
     tasks = allTasks.filter(
       (task: any) =>
-        task.session_id && task.session_id.toString() === searchParams.sessionId && task.status !== "postponed",
+        task.session_id && task.session_id.toString() === sessionId && task.status !== "postponed",
     )
   } else {
-    const allTasks = await getDriverTasks(params.driverId)
+    const allTasks = await getDriverTasks(driverId)
     tasks = allTasks.filter((task: any) => !task.session_id || task.status === "postponed")
   }
 
-  const allSessions = await getDriverSessions(params.driverId)
+  const allSessions = await getDriverSessions(driverId)
   const approvedSessions = allSessions.filter((s: any) => s.is_approved === true)
 
   return <DriverViewClient driver={driver} initialTasks={tasks} session={session} approvedSessions={approvedSessions} />
