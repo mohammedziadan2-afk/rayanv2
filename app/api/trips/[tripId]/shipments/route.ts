@@ -3,10 +3,10 @@ import { sql } from "@/lib/db"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tripId: string } }
+  { params }: { params: Promise<{ tripId: string }> }
 ) {
   try {
-    const tripId = params.tripId
+    const { tripId } = await params
     const searchParams = request.nextUrl.searchParams
     const availableOnly = searchParams.get("available") === "true"
 

@@ -2,12 +2,13 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import WarehouseDetailsClient from "@/components/warehouse-details-client"
 
-export default function WarehousePage({
+export default async function WarehousePage({
   params,
 }: {
-  params: { warehouseName: string }
+  params: Promise<{ warehouseName: string }>
 }) {
-  const decodedName = decodeURIComponent(params.warehouseName)
+  const { warehouseName } = await params
+  const decodedName = decodeURIComponent(warehouseName)
 
   if (!decodedName) {
     notFound()

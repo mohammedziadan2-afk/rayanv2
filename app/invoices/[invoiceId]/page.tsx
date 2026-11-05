@@ -8,17 +8,17 @@ import { X, Printer } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
-import { useEffect, useState } from "react"
+import { use, useEffect, useState } from "react"
 import { CompanyStamp } from "@/components/company-stamp"
 
 interface InvoicePageProps {
-  params: {
+  params: Promise<{
     invoiceId: string
-  }
+  }>
 }
 
 export default function InvoicePage({ params }: InvoicePageProps) {
-  const shipmentId = params.invoiceId
+  const { invoiceId: shipmentId } = use(params)
   const [shipmentData, setShipmentData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [showStamp, setShowStamp] = useState(true)
